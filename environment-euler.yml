@@ -7,8 +7,8 @@ dependencies:
   - python=3.11
   - numpy
   - pillow
-  - pytorch
-  - torchvision
+  - pytorch=2.5.*
+  - torchvision=0.20.*
   - pytorch-cuda=12.1
   - pip
   - pip:

@@ -53,6 +53,10 @@ conda env create -f environment-euler.yml
 conda activate dsl-p6-pipeline
 ```
 
+The environment file is pinned to `pytorch=2.5.*`, `torchvision=0.20.*`, and `pytorch-cuda=12.1`.
+That is intentional: the PyTorch conda packages are published for CUDA 12.1, while your Euler module stack uses `cuda/12.2.1`.
+That combination is normally the practical match on clusters because the loaded CUDA module provides the runtime stack and the 12.1 PyTorch build is compatible with the newer 12.2 driver/runtime environment.
+
 If the environment already exists and you changed dependencies later, update it with:
 
 ```bash
@@ -60,6 +64,12 @@ conda env update -f environment-euler.yml --prune
 ```
 
 If `conda` is not on your path after installing Miniconda, source the Miniconda init script first.
+
+To confirm the environment sees the GPU correctly after activation, run:
+
+```bash
+python -c "import torch; print(torch.__version__); print(torch.version.cuda); print(torch.cuda.is_available())"
+```
 
 ## 3. Handle the Hugging Face token safely
 
@@ -161,6 +171,7 @@ tail -f logs/dsl-p6-pipeline-<jobid>.out
 - `scripts/run_pipeline.py` is the right place to keep orchestrating the four stages as they are implemented.
 - Create the conda environment on a GPU-equipped compute node so the PyTorch and CUDA stack resolve against the same module environment you will use in jobs.
 - Use `squeue -u $USER` to monitor submitted jobs.
+- There is no separate `requirements-euler.txt` anymore; the conda environment in `environment-euler.yml` is the single source of truth for Euler.
 
 ## Minimal command sequence
 
