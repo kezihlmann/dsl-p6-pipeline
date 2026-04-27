@@ -2,7 +2,7 @@ name: dsl-p6-pipeline
 channels:
   - pytorch
   - nvidia
-  - conda-forge
+  - defaults
 dependencies:
   - python=3.11
   - numpy

@@ -56,6 +56,8 @@ conda activate dsl-p6-pipeline
 The environment file is pinned to `pytorch=2.5.*`, `torchvision=0.20.*`, and `pytorch-cuda=12.1`.
 That is intentional: the PyTorch conda packages are published for CUDA 12.1, while your Euler module stack uses `cuda/12.2.1`.
 That combination is normally the practical match on clusters because the loaded CUDA module provides the runtime stack and the 12.1 PyTorch build is compatible with the newer 12.2 driver/runtime environment.
+The conda file intentionally avoids `conda-forge` because the broader mixed-channel solve was getting killed on the Euler login node with exit code `137` during metadata resolution.
+The heavy ML packages come from `pytorch` and `nvidia`, and the Hugging Face packages are installed through `pip` inside the environment.
 
 If the environment already exists and you changed dependencies later, update it with:
 
@@ -65,10 +67,28 @@ conda env update -f environment-euler.yml --prune
 
 If `conda` is not on your path after installing Miniconda, source the Miniconda init script first.
 
+If an older failed attempt exists, remove it before recreating the environment:
+
+```bash
+conda env remove -n dsl-p6-pipeline
+```
+
 To confirm the environment sees the GPU correctly after activation, run:
 
 ```bash
 python -c "import torch; print(torch.__version__); print(torch.version.cuda); print(torch.cuda.is_available())"
+```
+
+If the environment solve still gets killed on the login node, request a GPU shell first and run the same create command there:
+
+```bash
+srun --gpus=1 --cpus-per-task=2 --mem=16G --time=01:00:00 --pty bash
+module purge
+module load stack/2024-05 gcc/13.2.0 cuda/12.2.1 eth_proxy
+unset PYTHONHOME
+unset PYTHONPATH
+source ~/miniconda3/etc/profile.d/conda.sh
+conda env create -f environment-euler.yml
 ```
 
 ## 3. Handle the Hugging Face token safely
