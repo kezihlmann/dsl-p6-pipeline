@@ -1,6 +1,5 @@
 # ------------------------------------
-# Pipeline setting
-# this pipeline is divided into 4 steps
+# Pipeline settings - this pipeline is divided into 4 steps:
 # step 1: sam-3 masks
 # step 2: colmap
 # step 3: 3dgs 
@@ -34,7 +33,6 @@ initial_number_of_points = 0
 # ------------------------------------
 # STEP 3: 3d-reconstruction using 3dgs
 # ------------------------------------
-
 # loss: "silhouette" or "alpha"
 loss = "silhouette"
 resolution_decrease_factor = 4
