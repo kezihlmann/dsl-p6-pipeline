@@ -1,0 +1,6 @@
+
+data/
+# Large experiment outputs
+*.pth
+*.ply
+

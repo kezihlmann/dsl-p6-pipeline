@@ -1,0 +1,45 @@
+# ------------------------------------
+# Pipeline setting
+# this pipeline is divided into 4 steps
+# step 1: sam-3 masks
+# step 2: colmap
+# step 3: 3dgs 
+# step 4: video Generation
+# ------------------------------------
+
+# ------------------------------------
+# General settings
+# ------------------------------------
+input_folder = "data/maize_4"
+output_folder = "data/maize_4"
+first_timestep = 0
+last_timestep = 24
+number_of_timesteps = 3
+step_1 = True
+step_2 = False
+step_3 = False
+step_4 = False
+
+# ------------------------------------
+# STEP 1:  SAM-3 mask generation
+# ------------------------------------
+replace_existing_masks = False
+sam_3_prompt = "plant"
+
+# ------------------------------------
+# STEP 2: colmap
+# ------------------------------------
+initial_number_of_points = 0
+
+# ------------------------------------
+# STEP 3: 3d-reconstruction using 3dgs
+# ------------------------------------
+
+# loss: "silhouette" or "alpha"
+loss = "silhouette"
+resolution_decrease_factor = 4
+number_of_iteration = 100
+
+# ------------------------------------
+# STEP 4: Video generation
+# ------------------------------------
