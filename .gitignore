@@ -4,3 +4,9 @@ data/
 *.pth
 *.ply
 
+# Local Python environments and secrets
+.venv/
+.venv-euler/
+.env
+__pycache__/
+
