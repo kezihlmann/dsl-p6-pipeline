@@ -42,6 +42,15 @@ Then request an interactive GPU node before creating the environment:
 srun --gpus=1 --pty bash
 ```
 
+ETH's Euler docs recommend putting persistent module loads in `~/.bashrc`, especially `module load eth_proxy`, and optionally a default software stack such as `module load stack/2024-06`.
+For this repository, keep the project commands aligned with `submit_pipeline.slurm`, which currently uses the pinned combination `stack/2024-05 gcc/13.2.0 cuda/12.2.1 eth_proxy` for reproducibility.
+If you want the proxy available automatically for `wget`, `pip`, or Hugging Face downloads, add this to `~/.bashrc` on Euler and reload your shell once:
+
+```bash
+echo 'module load eth_proxy' >> ~/.bashrc
+source ~/.bashrc
+```
+
 Inside that compute shell, load the same modules you plan to use for jobs and create the conda environment:
 
 ```bash

@@ -5,6 +5,7 @@ channels:
   - defaults
 dependencies:
   - python=3.11
+  - mkl<2024.1
   - numpy
   - pillow
   - pytorch=2.5.*
