@@ -10,8 +10,9 @@ from pathlib import Path
 
 import numpy as np
 import torch
+from huggingface_hub import get_token
 from PIL import Image
-from transformers import Sam3Model, Sam3Processor
+from transformers import AutoTokenizer, Sam3ImageProcessor, Sam3Model, Sam3Processor
 
 
 EXTENSIONS = {".jpg", ".jpeg", ".png", ".bmp", ".tif", ".tiff", ".webp"}
@@ -100,13 +101,20 @@ def choose_timesteps(available: list[tuple[int, Path]], settings: Settings) -> l
 
 
 def resolve_token() -> str | None:
-	return os.getenv("HF_TOKEN") or os.getenv("HUGGING_FACE_HUB_TOKEN")
+	return os.getenv("HF_TOKEN") or os.getenv("HUGGING_FACE_HUB_TOKEN") or get_token()
 
 
 def load_model_and_processor(model_name: str, token: str | None, device: str) -> tuple[Sam3Model, Sam3Processor]:
 	load_kwargs = {"token": token} if token else {}
 	model = Sam3Model.from_pretrained(model_name, **load_kwargs).to(device)
-	processor = Sam3Processor.from_pretrained(model_name, **load_kwargs)
+	try:
+		processor = Sam3Processor.from_pretrained(model_name, **load_kwargs)
+	except OSError:
+		# Some SAM3 Hub snapshots ship only processor_config.json, while the current
+		# AutoImageProcessor path still looks for preprocessor_config.json first.
+		tokenizer = AutoTokenizer.from_pretrained(model_name, **load_kwargs)
+		image_processor = Sam3ImageProcessor()
+		processor = Sam3Processor(image_processor=image_processor, tokenizer=tokenizer)
 	return model, processor
 
 
