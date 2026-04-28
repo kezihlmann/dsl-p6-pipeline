@@ -9,4 +9,6 @@ data/
 .venv-euler/
 .env
 __pycache__/
+logs/
+.ipynb_checkpoints/
 
