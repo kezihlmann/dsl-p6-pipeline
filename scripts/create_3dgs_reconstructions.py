@@ -288,6 +288,48 @@ def patch_train_vanilla_3dgs(repo_dir: Path) -> bool:
 	return False
 
 
+def patch_wheatgs_helper(repo_dir: Path) -> bool:
+	path = repo_dir / "utils" / "wheatgs_helper.py"
+	text = path.read_text(encoding="utf-8")
+	original = text
+
+	old_import = "from shapely.geometry import Polygon\n"
+	new_import = (
+		"try:\n"
+		"    from shapely.geometry import Polygon\n"
+		"except ImportError:\n"
+		"    Polygon = None\n"
+	)
+	if "Polygon = None" not in text:
+		if old_import not in text:
+			raise ValueError("Failed to find shapely import in wheatgs_helper.py")
+		text = text.replace(old_import, new_import, 1)
+
+	old_function = (
+		"def polygon_from_points(points):\n"
+		"    # Ensure points are in a proper order (if needed)\n"
+		"    # For rectangles, points are typically in order (e.g. clockwise)\n"
+		"    return Polygon(points)\n"
+	)
+	new_function = (
+		"def polygon_from_points(points):\n"
+		"    # Ensure points are in a proper order (if needed)\n"
+		"    # For rectangles, points are typically in order (e.g. clockwise)\n"
+		"    if Polygon is None:\n"
+		"        raise ImportError(\"shapely is required for polygon matching helpers\")\n"
+		"    return Polygon(points)\n"
+	)
+	if 'raise ImportError("shapely is required for polygon matching helpers")' not in text:
+		if old_function not in text:
+			raise ValueError("Failed to find polygon_from_points in wheatgs_helper.py")
+		text = text.replace(old_function, new_function, 1)
+
+	if text != original:
+		path.write_text(text, encoding="utf-8")
+		return True
+	return False
+
+
 def patch_wheat_3dgs(repo_dir: Path) -> list[str]:
 	if not repo_dir.exists():
 		raise FileNotFoundError(f"Wheat-3DGS repository not found: {repo_dir}")
@@ -301,6 +343,8 @@ def patch_wheat_3dgs(repo_dir: Path) -> list[str]:
 		changed.append("scene/cameras.py")
 	if patch_train_vanilla_3dgs(repo_dir):
 		changed.append("train_vanilla_3dgs.py")
+	if patch_wheatgs_helper(repo_dir):
+		changed.append("utils/wheatgs_helper.py")
 	return changed
 
 
