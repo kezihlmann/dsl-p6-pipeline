@@ -1,0 +1,3 @@
+[submodule "external/Wheat-3DGS"]
+	path = external/Wheat-3DGS
+	url = https://github.com/zdwww/Wheat-3DGS.git
