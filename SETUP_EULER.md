@@ -1,10 +1,10 @@
 # Euler Setup
 
-This repository now has one implemented stage:
+This repository now has three implemented stages:
 
 - `scripts/create_sam3_masks.py`: implemented from the notebook template
-- `scripts/create_colmap.py`: TODO placeholder
-- `scripts/create_3dgs_reconstructions.py`: TODO placeholder
+- `scripts/create_colmap.py`: normalizes each selected timestep into the Wheat-3DGS-ready `sparse/0` layout
+- `scripts/create_3dgs_reconstructions.py`: patches Wheat-3DGS for external alpha masks and runs train/render
 - `scripts/create_video.py`: TODO placeholder
 - `scripts/run_pipeline.py`: runs enabled steps from `settings_pipeline.txt`
 - `submit_pipeline.slurm`: Slurm entrypoint for Euler
@@ -66,7 +66,7 @@ The environment file is pinned to `pytorch=2.5.*`, `torchvision=0.20.*`, and `py
 That is intentional: the PyTorch conda packages are published for CUDA 12.1, while your Euler module stack uses `cuda/12.2.1`.
 That combination is normally the practical match on clusters because the loaded CUDA module provides the runtime stack and the 12.1 PyTorch build is compatible with the newer 12.2 driver/runtime environment.
 The conda file intentionally avoids `conda-forge` because the broader mixed-channel solve was getting killed on the Euler login node with exit code `137` during metadata resolution.
-The heavy ML packages come from `pytorch` and `nvidia`, and the Hugging Face packages are installed through `pip` inside the environment.
+The heavy ML packages come from `pytorch` and `nvidia`, and the Hugging Face plus Wheat-3DGS runtime packages are installed through `pip` inside the environment.
 
 If the environment already exists and you changed dependencies later, update it with:
 
@@ -113,7 +113,7 @@ module purge
 module load stack/2024-05 gcc/13.2.0 cuda/12.2.1 eth_proxy
 eval "$(conda shell.bash hook)"
 conda activate dsl-p6-pipeline
-huggingface-cli login
+hf auth login
 ```
 
 This stores the token in your Hugging Face cache under your account on Euler.
@@ -155,7 +155,30 @@ print("SAM3 model cache is ready.")
 PY
 ```
 
-## 5. Run the implemented stage interactively first
+## 5. Build the Wheat-3DGS CUDA extensions once
+
+After the environment is active and the submodule is checked out, build the three native extensions inside a GPU shell:
+
+```bash
+cd /cluster/project/cropsci/kzihlmann/dsl-p6-pipeline
+git submodule update --init --recursive
+
+export CUDA_HOME=$(dirname "$(dirname "$(which nvcc)")")
+export CUDACXX="$CUDA_HOME/bin/nvcc"
+export PATH="$CUDA_HOME/bin:$PATH"
+export LD_LIBRARY_PATH="$CUDA_HOME/lib64:$LD_LIBRARY_PATH"
+
+TORCH_LIB=$(python -c "import os, torch; print(os.path.join(os.path.dirname(torch.__file__), 'lib'))")
+export LD_LIBRARY_PATH="$TORCH_LIB:$LD_LIBRARY_PATH"
+
+pip install -v --no-build-isolation -e external/Wheat-3DGS/submodules/simple-knn
+pip install -v --no-build-isolation -e external/Wheat-3DGS/submodules/diff-gaussian-rasterization
+pip install -v --no-build-isolation -e external/Wheat-3DGS/submodules/flashsplat-rasterization
+```
+
+On Euler's `stack/2024-05 gcc/13.2.0 cuda/12.2.1` combination, CUDA may reject the host compiler version while building the last two extensions. If that happens, patch both extension `setup.py` files to add `-allow-unsupported-compiler` to the `nvcc` compile args, remove their `build/` directories, and rerun those two `pip install -e ...` commands.
+
+## 6. Run the implemented stages interactively first
 
 Before using Slurm, validate the path layout once:
 
@@ -165,6 +188,8 @@ module load stack/2024-05 gcc/13.2.0 cuda/12.2.1 eth_proxy
 eval "$(conda shell.bash hook)"
 conda activate dsl-p6-pipeline
 python scripts/create_sam3_masks.py --settings settings_pipeline.txt
+python scripts/create_colmap.py --settings settings_pipeline.txt
+python scripts/create_3dgs_reconstructions.py --settings settings_pipeline.txt
 ```
 
 Your current settings expect data at:
@@ -173,9 +198,9 @@ Your current settings expect data at:
 /cluster/project/cropsci/kzihlmann/dsl-p6-pipeline/data/maize_4
 ```
 
-and will write masks into each selected timestep folder under `masks/`.
+and will write masks into each selected timestep folder under `masks_binary_sam3`, `masks_binary_ones`, and `masks_binary_active`.
 
-## 6. Submit through Slurm
+## 7. Submit through Slurm
 
 ```bash
 cd /cluster/project/cropsci/kzihlmann/dsl-p6-pipeline
@@ -195,8 +220,9 @@ tail -f logs/dsl-p6-pipeline-<jobid>.out
 
 ## Notes
 
-- `settings_pipeline.txt` currently enables only step 1, which is the implemented SAM3 stage.
-- Steps 2 to 4 intentionally fail with a TODO message if enabled.
+- `settings_pipeline.txt` currently enables only step 1 by default; enable steps 2 and 3 when you want the full reconstruction run through `scripts/run_pipeline.py`.
+- Step 2 is dataset normalization for Wheat-3DGS, not a standalone COLMAP feature extraction/mapping stage.
+- Step 3 depends on the Wheat-3DGS submodule and its compiled CUDA extensions.
 - `scripts/run_pipeline.py` is the right place to keep orchestrating the four stages as they are implemented.
 - Create the conda environment on a GPU-equipped compute node so the PyTorch and CUDA stack resolve against the same module environment you will use in jobs.
 - Use `squeue -u $USER` to monitor submitted jobs.
@@ -214,8 +240,11 @@ module load stack/2024-05 gcc/13.2.0 cuda/12.2.1 eth_proxy
 eval "$(conda shell.bash hook)"
 conda env create -f environment-euler.yml
 conda activate dsl-p6-pipeline
-huggingface-cli login
+hf auth login
+git submodule update --init --recursive
 python scripts/create_sam3_masks.py --settings settings_pipeline.txt
+python scripts/create_colmap.py --settings settings_pipeline.txt
+python scripts/create_3dgs_reconstructions.py --settings settings_pipeline.txt
 sbatch submit_pipeline.slurm
 squeue -u $USER
 ```

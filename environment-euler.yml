@@ -15,3 +15,10 @@ dependencies:
   - pip:
       - transformers
       - huggingface_hub
+      - wandb
+      - plyfile
+      - ffmpeg-python
+      - lpips
+      - ninja
+      - cmake
+      - open3d
