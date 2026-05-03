@@ -254,6 +254,40 @@ def patch_cameras(repo_dir: Path) -> bool:
 	return False
 
 
+def patch_train_vanilla_3dgs(repo_dir: Path) -> bool:
+	path = repo_dir / "train_vanilla_3dgs.py"
+	text = path.read_text(encoding="utf-8")
+	original = text
+
+	old_import = "import os\nimport wandb\nimport torch\n"
+	new_import = (
+		"import os\n"
+		"try:\n"
+		"    import wandb\n"
+		"except ImportError:\n"
+		"    class _WandbStub:\n"
+		"        @staticmethod\n"
+		"        def init(*args, **kwargs):\n"
+		"            return None\n"
+		"\n"
+		"        @staticmethod\n"
+		"        def log(*args, **kwargs):\n"
+		"            return None\n"
+		"\n"
+		"    wandb = _WandbStub()\n"
+		"import torch\n"
+	)
+	if "class _WandbStub:" not in text:
+		if old_import not in text:
+			raise ValueError("Failed to find wandb import block in train_vanilla_3dgs.py")
+		text = text.replace(old_import, new_import, 1)
+
+	if text != original:
+		path.write_text(text, encoding="utf-8")
+		return True
+	return False
+
+
 def patch_wheat_3dgs(repo_dir: Path) -> list[str]:
 	if not repo_dir.exists():
 		raise FileNotFoundError(f"Wheat-3DGS repository not found: {repo_dir}")
@@ -265,6 +299,8 @@ def patch_wheat_3dgs(repo_dir: Path) -> list[str]:
 		changed.append("utils/camera_utils.py")
 	if patch_cameras(repo_dir):
 		changed.append("scene/cameras.py")
+	if patch_train_vanilla_3dgs(repo_dir):
+		changed.append("train_vanilla_3dgs.py")
 	return changed
 
 
