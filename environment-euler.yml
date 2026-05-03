@@ -8,6 +8,8 @@ dependencies:
   - mkl<2024.1
   - numpy
   - pillow
+  - scipy
+  - shapely
   - pytorch=2.5.*
   - torchvision=0.20.*
   - pytorch-cuda=12.1
