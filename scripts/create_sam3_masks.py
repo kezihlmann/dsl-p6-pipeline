@@ -319,11 +319,18 @@ def run(settings_path: Path, device_override: str | None = None) -> int:
 	settings = parse_settings(settings_path)
 	repo_root = settings_path.parent
 	input_root = (repo_root / settings.input_folder).resolve()
-	device = device_override or ("cuda" if torch.cuda.is_available() else "cpu")
+	device = device_override or "cuda"
 	token = resolve_token()
 
 	if not input_root.exists():
 		raise FileNotFoundError(f"Input folder does not exist: {input_root}")
+	if device != "cuda":
+		raise ValueError("SAM3 mask generation only supports --device cuda.")
+	if not torch.cuda.is_available():
+		raise RuntimeError(
+			"SAM3 mask generation requires a CUDA GPU, but torch.cuda.is_available() is False. "
+			"Run this step on a GPU node and make sure the CUDA-enabled environment is activated."
+		)
 
 	print(f"Using device: {device}")
 	print(f"Input root: {input_root}")
@@ -342,7 +349,7 @@ def run(settings_path: Path, device_override: str | None = None) -> int:
 	for timestep_value, timestep_input_dir in selected_timesteps:
 		timestep_name = timestep_input_dir.name
 		image_dir = timestep_input_dir / "images"
-		output_dir = timestep_input_dir / "masks_binary_sam3"
+		output_dir = timestep_input_dir / "mask_sam3"
 		if not image_dir.exists():
 			print(f"Skipping {timestep_name}: no images folder")
 			continue
@@ -389,9 +396,9 @@ def main() -> int:
 	)
 	parser.add_argument(
 		"--device",
-		choices=["cpu", "cuda"],
+		choices=["cuda"],
 		default=None,
-		help="Override automatic device selection.",
+		help="SAM3 requires CUDA and will only run on a GPU.",
 	)
 	args = parser.parse_args()
 	return run(args.settings.resolve(), args.device)
