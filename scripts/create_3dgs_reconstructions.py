@@ -126,8 +126,7 @@ def patch_dataset_readers(repo_dir: Path) -> bool:
 			"        image = Image.open(image_path)\n"
 			"\n"
 			"        alpha_mask_candidates = [\n"
-			"            os.path.join(os.path.dirname(images_folder), \"masks_binary_active\", image_name + \"_mask_ground_truth.png\"),\n"
-			"            os.path.join(os.path.dirname(images_folder), \"masks_binary_active\", image_name + \"_mask_sam3.png\"),\n"
+			"            os.path.join(os.path.dirname(images_folder), \"masks\", image_name + \"_mask_sam3.png\"),\n"
 			"        ]\n"
 			"        alpha_mask_path = next(\n"
 			"            (os.path.normpath(candidate) for candidate in alpha_mask_candidates if os.path.exists(candidate)),\n"
@@ -353,9 +352,9 @@ def ensure_prepared_timestep(frame_root: Path) -> None:
 		raise FileNotFoundError(
 			f"Prepared sparse/0 directory missing for {frame_root}. Run create_colmap.py first."
 		)
-	if not (frame_root / "masks_binary_active").exists():
+	if not (frame_root / "masks").exists():
 		raise FileNotFoundError(
-			f"Active mask directory missing for {frame_root}. Run create_colmap.py first."
+			f"Mask directory missing for {frame_root}. Run create_sam3_masks.py first."
 		)
 
 

@@ -198,7 +198,7 @@ Your current settings expect data at:
 /cluster/project/cropsci/kzihlmann/dsl-p6-pipeline/data/maize_4
 ```
 
-and will write masks into each selected timestep folder under `mask_sam3`, `masks_binary_ones`, and `masks_binary_active`.
+and will write masks into each selected timestep folder under `masks`.
 
 ## 7. Submit through Slurm
 

@@ -2,13 +2,9 @@ from __future__ import annotations
 
 import argparse
 import ast
-import binascii
 import os
 import re
-import shutil
-import struct
 import sys
-import zlib
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -234,87 +230,6 @@ def process_image(
 	return True
 
 
-def create_masks_binary_ones(frame_root: Path, ones_dir: Path) -> None:
-	images_dir = frame_root / "images"
-	if not images_dir.exists():
-		raise FileNotFoundError(f"No images directory found in {frame_root}")
-
-	image_paths = [
-		path for path in sorted(images_dir.iterdir()) if path.is_file() and path.suffix.lower() in EXTENSIONS
-	]
-	if not image_paths:
-		raise ValueError(f"No supported images found in {images_dir}")
-
-	with Image.open(image_paths[0]) as first_image:
-		width, height = first_image.size
-
-	if ones_dir.exists():
-		shutil.rmtree(ones_dir)
-	ones_dir.mkdir(parents=True, exist_ok=True)
-
-	for image_path in image_paths:
-		write_grayscale_png(
-			width=width,
-			height=height,
-			output_path=ones_dir / f"{image_path.stem}_mask_ground_truth.png",
-			fill_value=255,
-		)
-
-
-def write_grayscale_png(width: int, height: int, output_path: Path, fill_value: int) -> None:
-	row = bytes([fill_value]) * width
-	raw = b"".join(b"\x00" + row for _ in range(height))
-
-	def make_chunk(tag: bytes, data: bytes) -> bytes:
-		crc = binascii.crc32(tag + data) & 0xFFFFFFFF
-		return struct.pack(">I", len(data)) + tag + data + struct.pack(">I", crc)
-
-	ihdr = struct.pack(">IIBBBBB", width, height, 8, 0, 0, 0, 0)
-	idat = zlib.compress(raw)
-	png = b"".join(
-		[
-			b"\x89PNG\r\n\x1a\n",
-			make_chunk(b"IHDR", ihdr),
-			make_chunk(b"IDAT", idat),
-			make_chunk(b"IEND", b""),
-		]
-	)
-	output_path.write_bytes(png)
-
-
-def refresh_active_masks(frame_root: Path, source_dir: Path) -> str:
-	active_dir = frame_root / "masks_binary_active"
-	if active_dir.is_symlink() or active_dir.exists():
-		if active_dir.is_symlink() or active_dir.is_file():
-			active_dir.unlink()
-		else:
-			shutil.rmtree(active_dir)
-
-	try:
-		active_dir.symlink_to(source_dir, target_is_directory=True)
-		return "symlink"
-	except OSError:
-		shutil.copytree(source_dir, active_dir)
-		return "copy"
-
-
-def prepare_mask_directories(frame_root: Path, sam3_dir: Path) -> dict[str, str]:
-	legacy_masks_dir = frame_root / "masks"
-	gt_dir = frame_root / "masks_binary_gt"
-	ones_dir = frame_root / "masks_binary_ones"
-
-	if legacy_masks_dir.exists() and not sam3_dir.exists() and not gt_dir.exists():
-		shutil.move(str(legacy_masks_dir), str(sam3_dir))
-
-	create_masks_binary_ones(frame_root, ones_dir)
-	active_source = sam3_dir if sam3_dir.exists() else gt_dir if gt_dir.exists() else ones_dir
-	active_mode = refresh_active_masks(frame_root, active_source)
-	return {
-		"active_source": active_source.name,
-		"active_mode": active_mode,
-	}
-
-
 def run(settings_path: Path, device_override: str | None = None) -> int:
 	settings = parse_settings(settings_path)
 	repo_root = settings_path.parent
@@ -334,7 +249,7 @@ def run(settings_path: Path, device_override: str | None = None) -> int:
 
 	print(f"Using device: {device}")
 	print(f"Input root: {input_root}")
-	print("Prepared masks will be written into each timestep folder for downstream steps.")
+	print("Prepared masks will be written into each timestep folder under masks.")
 	if token:
 		print("Using Hugging Face token from environment.")
 	else:
@@ -349,7 +264,7 @@ def run(settings_path: Path, device_override: str | None = None) -> int:
 	for timestep_value, timestep_input_dir in selected_timesteps:
 		timestep_name = timestep_input_dir.name
 		image_dir = timestep_input_dir / "images"
-		output_dir = timestep_input_dir / "mask_sam3"
+		output_dir = timestep_input_dir / "masks"
 		if not image_dir.exists():
 			print(f"Skipping {timestep_name}: no images folder")
 			continue
@@ -375,12 +290,7 @@ def run(settings_path: Path, device_override: str | None = None) -> int:
 				folder_processed += 1
 				total_processed += 1
 
-		prep_result = prepare_mask_directories(timestep_input_dir, output_dir)
-
-		print(
-			f"Finished {timestep_name}: {folder_processed} new, {folder_skipped} skipped, "
-			f"active masks from {prep_result['active_source']} via {prep_result['active_mode']}"
-		)
+		print(f"Finished {timestep_name}: {folder_processed} new, {folder_skipped} skipped in {output_dir.name}")
 
 	print(f"\nFinished all folders: {total_processed} new, {total_skipped} skipped")
 	return 0
