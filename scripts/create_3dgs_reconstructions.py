@@ -405,6 +405,8 @@ def verify_masked_scene(
     dry_run: bool,
 ) -> None:
     debug_model_dir = model_dir / "debug_check"
+    if not dry_run:
+        debug_model_dir.mkdir(parents=True, exist_ok=True)
     inline_code = (
         "from argparse import ArgumentParser\n"
         "from arguments import ModelParams\n"
