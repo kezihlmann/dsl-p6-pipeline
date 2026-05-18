@@ -357,18 +357,18 @@ def ensure_prepared_timestep(frame_root: Path) -> Path:
     return normalize_masks_binary_active(frame_root)
 
 
-def selected_timesteps_need_colmap(frame_roots: list[Path]) -> bool:
-    return any(not (frame_root / "sparse" / "0").exists() for frame_root in frame_roots)
+def selected_timesteps_need_sparse_normalization(frame_roots: list[Path]) -> bool:
+    return any((frame_root / "sparse").exists() and not (frame_root / "sparse" / "0").exists() for frame_root in frame_roots)
 
 
-def run_colmap_preparation(settings_path: Path, repo_root: Path, dry_run: bool) -> None:
+def run_sparse_normalization(settings_path: Path, repo_root: Path, dry_run: bool) -> None:
     command = [
         sys.executable,
         str(Path(__file__).resolve().parent / "create_colmap.py"),
         "--settings",
         str(settings_path),
     ]
-    print("Some selected timesteps are missing sparse/0. Running COLMAP preparation first.")
+    print("Some selected timesteps already have a sparse model but are missing sparse/0. Running sparse normalization first.")
     print(f"Running: {' '.join(command)}")
     if dry_run:
         return
@@ -471,8 +471,8 @@ def run(settings_path: Path, repo_dir: Path, dry_run: bool, overwrite: bool) -> 
     patched_files = patch_wheat_3dgs(repo_dir)
 
     selected_frame_roots = [frame_root for _, frame_root in selected_timesteps]
-    if selected_timesteps_need_colmap(selected_frame_roots):
-        run_colmap_preparation(settings_path=settings_path, repo_root=repo_root, dry_run=dry_run)
+    if selected_timesteps_need_sparse_normalization(selected_frame_roots):
+        run_sparse_normalization(settings_path=settings_path, repo_root=repo_root, dry_run=dry_run)
 
     print(f"Wheat-3DGS repo: {repo_dir}")
     if patched_files:

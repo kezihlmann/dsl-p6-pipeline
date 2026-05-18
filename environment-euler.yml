@@ -1,6 +1,5 @@
 name: dsl-p6-pipeline
 channels:
-  - conda-forge
   - pytorch
   - nvidia
   - defaults
@@ -11,7 +10,6 @@ dependencies:
   - pillow
   - scipy
   - shapely
-  - colmap
   - pytorch=2.5.*
   - torchvision=0.20.*
   - pytorch-cuda=12.1

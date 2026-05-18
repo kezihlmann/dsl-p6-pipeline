@@ -6,7 +6,7 @@ There is no separate `3dgs_project` runtime dependency in this repo anymore.
 This repository now has three implemented stages:
 
 - `scripts/create_sam3_masks.py`: implemented from the notebook template
-- `scripts/create_colmap.py`: creates a COLMAP sparse model from `images` when missing, or normalizes an existing sparse model into the Wheat-3DGS-ready `sparse/0` layout
+- `scripts/create_colmap.py`: normalizes a provided COLMAP sparse model into the Wheat-3DGS-ready `sparse/0` layout
 - `scripts/create_3dgs_reconstructions.py`: patches Wheat-3DGS for external alpha masks and runs train/render
 - `scripts/create_video.py`: TODO placeholder
 - `scripts/run_pipeline.py`: runs enabled steps from `settings_pipeline.txt`
@@ -71,19 +71,12 @@ The environment file is pinned to `pytorch=2.5.*`, `torchvision=0.20.*`, and `py
 That is intentional: the PyTorch conda packages are published for CUDA 12.1, while your Euler module stack uses `cuda/12.2.1`.
 That combination is normally the practical match on clusters because the loaded CUDA module provides the runtime stack and the 12.1 PyTorch build is compatible with the newer 12.2 driver/runtime environment.
 The conda file intentionally avoids `conda-forge` because the broader mixed-channel solve was getting killed on the Euler login node with exit code `137` during metadata resolution.
-The heavy ML packages come from `pytorch` and `nvidia`, COLMAP is installed through `conda-forge`, and the Hugging Face plus Wheat-3DGS runtime packages are installed through `pip` inside the environment.
+The heavy ML packages come from `pytorch` and `nvidia`, and the Hugging Face plus Wheat-3DGS runtime packages are installed through `pip` inside the environment.
 
 If the environment already exists and you changed dependencies later, update it with:
 
 ```bash
 conda env update -f environment-euler.yml --prune
-```
-
-After activation, confirm COLMAP is available:
-
-```bash
-which colmap
-colmap -h | head
 ```
 
 If `conda` is not on your path after installing Miniconda, source the Miniconda init script first.
@@ -210,9 +203,13 @@ Your current settings expect data at:
 /cluster/project/cropsci/kzihlmann/dsl-p6-pipeline/data/maize_4
 ```
 
+Step 2 requires a provided COLMAP sparse model in each selected timestep folder.
+If `sparse/0` already exists, it will be reused directly.
+If only `sparse/` exists, `create_colmap.py` will normalize it into `sparse/0`.
+If no sparse model is present, step 2 will stop and ask you to provide one.
+
 Step 3 will use `masks_binary_active` if it already exists.
 If only SAM3 masks under `masks/` are present, `create_3dgs_reconstructions.py` will automatically prepare a compatible `masks_binary_active` folder for Wheat-3DGS.
-If `sparse/0` is missing, step 2 will automatically run `create_colmap.py` first to build the sparse COLMAP model from the timestep `images` folder.
 
 ## 7. Submit through Slurm
 
@@ -235,7 +232,7 @@ tail -f logs/dsl-p6-pipeline-<jobid>.out
 ## Notes
 
 - `settings_pipeline.txt` currently enables only step 1 by default; enable steps 2 and 3 when you want the full reconstruction run through `scripts/run_pipeline.py`.
-- Step 2 is dataset normalization for Wheat-3DGS, not a standalone COLMAP feature extraction/mapping stage.
+- Step 2 expects a COLMAP sparse model to already exist; it does not run COLMAP feature extraction or mapping itself.
 - Step 3 depends on the Wheat-3DGS submodule and its compiled CUDA extensions.
 - `scripts/run_pipeline.py` is the right place to keep orchestrating the four stages as they are implemented.
 - Create the conda environment on a GPU-equipped compute node so the PyTorch and CUDA stack resolve against the same module environment you will use in jobs.
