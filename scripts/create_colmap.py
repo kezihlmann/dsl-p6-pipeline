@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import ast
+import os
 import shutil
 import subprocess
 import re
@@ -90,9 +91,22 @@ def choose_timesteps(available: list[tuple[int, Path]], settings: Settings) -> l
 	return [filtered[index] for index in sorted(selected_indices)]
 
 
+def resolve_colmap_executable() -> str:
+	colmap_executable = os.environ.get("COLMAP_EXECUTABLE", "colmap").strip()
+	return colmap_executable or "colmap"
+
+
 def run_command(command: list[str], cwd: Path) -> None:
 	print(f"Running: {' '.join(command)}")
-	subprocess.run(command, cwd=cwd, check=True)
+	try:
+		subprocess.run(command, cwd=cwd, check=True)
+	except FileNotFoundError as exc:
+		if command and command[0] == resolve_colmap_executable():
+			raise FileNotFoundError(
+				"COLMAP executable not found. Install COLMAP in the environment or set "
+				"COLMAP_EXECUTABLE to the full executable path before running create_colmap.py."
+			) from exc
+		raise
 
 
 def ensure_sparse_zero(frame_root: Path) -> bool:
@@ -117,6 +131,7 @@ def reconstruct_sparse_model(frame_root: Path, use_gpu: bool) -> None:
 	if not image_dir.exists():
 		raise FileNotFoundError(f"No images directory found in {frame_root}")
 
+	colmap_executable = resolve_colmap_executable()
 	colmap_root = frame_root / "colmap"
 	distorted_root = colmap_root / "distorted"
 	sparse_root = frame_root / "sparse"
@@ -133,7 +148,7 @@ def reconstruct_sparse_model(frame_root: Path, use_gpu: bool) -> None:
 
 	run_command(
 		[
-			"colmap",
+			colmap_executable,
 			"feature_extractor",
 			"--database_path",
 			str(database_path),
@@ -151,7 +166,7 @@ def reconstruct_sparse_model(frame_root: Path, use_gpu: bool) -> None:
 
 	run_command(
 		[
-			"colmap",
+			colmap_executable,
 			"exhaustive_matcher",
 			"--database_path",
 			str(database_path),
@@ -163,7 +178,7 @@ def reconstruct_sparse_model(frame_root: Path, use_gpu: bool) -> None:
 
 	run_command(
 		[
-			"colmap",
+			colmap_executable,
 			"mapper",
 			"--database_path",
 			str(database_path),
