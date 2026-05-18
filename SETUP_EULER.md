@@ -1,5 +1,8 @@
 # Euler Setup
 
+This repository uses `external/Wheat-3DGS` as the single official 3DGS dependency.
+There is no separate `3dgs_project` runtime dependency in this repo anymore.
+
 This repository now has three implemented stages:
 
 - `scripts/create_sam3_masks.py`: implemented from the notebook template
@@ -16,6 +19,7 @@ This repository now has three implemented stages:
 cd /cluster/project/cropsci/kzihlmann
 git clone https://github.com/kezihlmann/dsl-p6-pipeline.git
 cd dsl-p6-pipeline
+git submodule update --init --recursive
 mkdir -p logs
 ```
 
@@ -24,6 +28,7 @@ If the repository is already cloned, update it with:
 ```bash
 cd /cluster/project/cropsci/kzihlmann/dsl-p6-pipeline
 git pull
+git submodule update --init --recursive
 ```
 
 ## 2. Create a Python environment
@@ -198,7 +203,8 @@ Your current settings expect data at:
 /cluster/project/cropsci/kzihlmann/dsl-p6-pipeline/data/maize_4
 ```
 
-and will write masks into each selected timestep folder under `masks`.
+Step 3 will use `masks_binary_active` if it already exists.
+If only SAM3 masks under `masks/` are present, `create_3dgs_reconstructions.py` will automatically prepare a compatible `masks_binary_active` folder for Wheat-3DGS.
 
 ## 7. Submit through Slurm
 

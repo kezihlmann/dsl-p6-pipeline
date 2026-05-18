@@ -11,4 +11,5 @@ data/
 __pycache__/
 logs/
 .ipynb_checkpoints/
+3dgs_project/
 
