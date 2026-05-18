@@ -1,9 +1,9 @@
 # ------------------------------------
-# Pipeline settings - this pipeline is divided into 4 steps:
+# Pipeline settings - this pipeline is divided into 3 steps:
 # step 1: sam-3 masks
-# step 2: colmap
-# step 3: 3dgs 
-# step 4: video Generation
+# step 2: 3dgs reconstructions
+#         this step checks whether sparse/0 already exists and runs COLMAP prep first if needed
+# step 3: video generation
 # ------------------------------------
 
 # ------------------------------------
@@ -11,13 +11,12 @@
 # ------------------------------------
 input_folder = "data/maize_4"
 output_folder = "data/maize_4"
-first_timestep = 0
-last_timestep = 0
+first_timestep = 2004
+last_timestep = 2004
 number_of_timesteps = 1
 step_1 = True
 step_2 = True
-step_3 = True
-step_4 = False
+step_3 = False
 
 # ------------------------------------
 # STEP 1:  SAM-3 mask generation
@@ -26,12 +25,13 @@ replace_existing_masks = False
 sam_3_prompt = "plant"
 
 # ------------------------------------
-# STEP 2: colmap
+# STEP 2: 3dgs reconstructions
+# COLMAP preparation is run automatically first when sparse/0 is missing
 # ------------------------------------
 initial_number_of_points = 10000
 
 # ------------------------------------
-# STEP 3: 3d-reconstruction using 3dgs
+# STEP 2 options for 3d-reconstruction using 3dgs
 # ------------------------------------
 # loss: "silhouette" or "alpha"
 loss = "silhouette"
@@ -39,5 +39,5 @@ resolution_decrease_factor = 4
 number_of_iteration = 4000
 
 # ------------------------------------
-# STEP 4: Video generation
+# STEP 3: Video generation
 # ------------------------------------

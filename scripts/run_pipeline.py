@@ -9,9 +9,8 @@ from pathlib import Path
 
 SCRIPT_BY_STEP = {
     "step_1": "create_sam3_masks.py",
-    "step_2": "create_colmap.py",
-    "step_3": "create_3dgs_reconstructions.py",
-    "step_4": "create_video.py",
+    "step_2": "create_3dgs_reconstructions.py",
+    "step_3": "create_video.py",
 }
 
 

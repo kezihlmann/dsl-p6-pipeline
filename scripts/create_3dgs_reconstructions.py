@@ -307,7 +307,8 @@ def ensure_sparse_zero(frame_root: Path) -> None:
     sparse_zero = frame_root / "sparse" / "0"
     if not sparse_zero.exists():
         raise FileNotFoundError(
-            f"Prepared sparse/0 directory missing for {frame_root}. Run create_colmap.py first."
+            f"Prepared sparse/0 directory missing for {frame_root}. "
+            "Automatic COLMAP preparation should have created it before reconstruction."
         )
 
 
@@ -356,17 +357,35 @@ def ensure_prepared_timestep(frame_root: Path) -> Path:
     return normalize_masks_binary_active(frame_root)
 
 
+def selected_timesteps_need_colmap(frame_roots: list[Path]) -> bool:
+    return any(not (frame_root / "sparse" / "0").exists() for frame_root in frame_roots)
+
+
+def run_colmap_preparation(settings_path: Path, repo_root: Path, dry_run: bool) -> None:
+    command = [
+        sys.executable,
+        str(Path(__file__).resolve().parent / "create_colmap.py"),
+        "--settings",
+        str(settings_path),
+    ]
+    print("Some selected timesteps are missing sparse/0. Running COLMAP preparation first.")
+    print(f"Running: {' '.join(command)}")
+    if dry_run:
+        return
+    subprocess.run(command, cwd=repo_root, check=True)
+
+
 def resolution_label(resolution_decrease_factor: int) -> str:
     return "fullres" if resolution_decrease_factor == 1 else f"res{resolution_decrease_factor}"
 
 
-def build_model_dir(output_root: Path, frame_root: Path, settings: Settings) -> Path:
+def build_model_dir(frame_root: Path, settings: Settings) -> Path:
     folder_name = (
         f"{frame_root.name}_masked_"
         f"{resolution_label(settings.resolution_decrease_factor)}_"
         f"16train6test_{settings.number_of_iteration}"
     )
-    return output_root / folder_name
+    return frame_root / "3dgs-reconstructions" / folder_name
 
 
 def build_environment(repo_dir: Path) -> dict[str, str]:
@@ -441,19 +460,19 @@ def run(settings_path: Path, repo_dir: Path, dry_run: bool, overwrite: bool) -> 
     settings = parse_settings(settings_path)
     repo_root = settings_path.parent
     input_root = (repo_root / settings.input_folder).resolve()
-    output_base = (repo_root / settings.output_folder).resolve()
-    reconstruction_root = output_base / "3dgs-reconstructions"
 
     if not input_root.exists():
         raise FileNotFoundError(f"Input folder does not exist: {input_root}")
-    if not output_base.exists():
-        raise FileNotFoundError(f"Output base folder does not exist: {output_base}")
     if settings.loss not in {"alpha", "silhouette"}:
         raise ValueError("loss must be either 'alpha' or 'silhouette'")
 
     available_timesteps = find_available_timesteps(input_root)
     selected_timesteps = choose_timesteps(available_timesteps, settings)
     patched_files = patch_wheat_3dgs(repo_dir)
+
+    selected_frame_roots = [frame_root for _, frame_root in selected_timesteps]
+    if selected_timesteps_need_colmap(selected_frame_roots):
+        run_colmap_preparation(settings_path=settings_path, repo_root=repo_root, dry_run=dry_run)
 
     print(f"Wheat-3DGS repo: {repo_dir}")
     if patched_files:
@@ -466,16 +485,13 @@ def run(settings_path: Path, repo_dir: Path, dry_run: bool, overwrite: bool) -> 
         f"Legacy settings value loss={settings.loss!r} is accepted but not used as a separate training loss."
     )
 
-    if not dry_run:
-        reconstruction_root.mkdir(parents=True, exist_ok=True)
-
     env = build_environment(repo_dir)
     save_iterations = select_iterations(settings.number_of_iteration, DEFAULT_SAVE_ITERATIONS)
     test_iterations = select_iterations(settings.number_of_iteration, DEFAULT_TEST_ITERATIONS)
 
     for _, frame_root in selected_timesteps:
         masks_dir = ensure_prepared_timestep(frame_root)
-        model_dir = build_model_dir(reconstruction_root, frame_root, settings)
+        model_dir = build_model_dir(frame_root, settings)
         if model_dir.exists() and overwrite:
             shutil.rmtree(model_dir)
 
