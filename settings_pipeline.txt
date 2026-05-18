@@ -33,6 +33,8 @@ initial_number_of_points = 10000
 # ------------------------------------
 # STEP 3: 3d-reconstruction using 3dgs
 # ------------------------------------
+# legacy option kept for compatibility; the current 3DGS step matches the colleague workflow
+# and trains on masked RGB images, so this value is not used as a separate training loss
 # loss: "silhouette" or "alpha"
 loss = "silhouette"
 resolution_decrease_factor = 4
