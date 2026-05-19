@@ -46,7 +46,7 @@ source ~/.bashrc
 Then request an interactive GPU node before creating the environment:
 
 ```bash
-srun --gpus=1 --pty bash
+srun --gpus=1 --cpus-per-task=4 --mem-per-cpu=8G --time=08:00:00 --pty bash
 ```
 
 ETH's Euler docs recommend putting persistent module loads in `~/.bashrc`, especially `module load eth_proxy`, and optionally a default software stack such as `module load stack/2024-06`.
@@ -69,7 +69,7 @@ conda env create -f environment-euler.yml
 conda activate dsl-p6-pipeline
 ```
 
-The environment file is pinned to `pytorch=2.5.*`, `torchvision=0.20.*`, and `pytorch-cuda=12.1`.
+The environment file is pinned to `pytorch=2.5.1`, `torchvision=0.20.1`, `torchaudio=2.5.1`, and `pytorch-cuda=12.1`.
 That is intentional: the PyTorch conda packages are published for CUDA 12.1, while your Euler module stack uses `cuda/12.2.1`.
 That combination is normally the practical match on clusters because the loaded CUDA module provides the runtime stack and the 12.1 PyTorch build is compatible with the newer 12.2 driver/runtime environment.
 The conda file intentionally avoids `conda-forge` because the broader mixed-channel solve was getting killed on the Euler login node with exit code `137` during metadata resolution.
@@ -94,7 +94,12 @@ To confirm the environment sees the GPU correctly after activation, run:
 
 ```bash
 python -c "import torch; print(torch.__version__); print(torch.version.cuda); print(torch.cuda.is_available())"
+conda list | egrep "pytorch|torchvision|torchaudio|libtorch"
 ```
+
+You want `torch.version.cuda` to report `12.1` and `torch.cuda.is_available()` to be `True`.
+If `torch.version.cuda` is `None`, or if `pytorch` / `libtorch` show `cpu_openblas`, the environment is in a broken mixed CPU/CUDA state and the 3DGS CUDA extensions will not build correctly.
+In that case, remove and recreate the environment from `environment-euler.yml` before continuing.
 
 If the environment solve still gets killed on the login node, request a GPU shell first and run the same create command there:
 
@@ -125,6 +130,8 @@ This environment pins:
 
 ```text
 python=3.11
+mkl<2024.1
+intel-openmp<2024.1
 pytorch=2.5.1
 torchvision=0.20.1
 torchaudio=2.5.1
@@ -212,12 +219,28 @@ export LD_LIBRARY_PATH="$CUDA_HOME/lib64:$LD_LIBRARY_PATH"
 TORCH_LIB=$(python -c "import os, torch; print(os.path.join(os.path.dirname(torch.__file__), 'lib'))")
 export LD_LIBRARY_PATH="$TORCH_LIB:$LD_LIBRARY_PATH"
 
-pip install -v --no-build-isolation -e external/Wheat-3DGS/submodules/simple-knn
-pip install -v --no-build-isolation -e external/Wheat-3DGS/submodules/diff-gaussian-rasterization
-pip install -v --no-build-isolation -e external/Wheat-3DGS/submodules/flashsplat-rasterization
+python -c "import torch; print(torch.__version__); print(torch.version.cuda); print(torch.cuda.is_available())"
+
+cd external/Wheat-3DGS/submodules/simple-knn
+python setup.py build_ext --inplace
+
+cd ../diff-gaussian-rasterization
+python setup.py build_ext --inplace
+
+cd ../flashsplat-rasterization
+python setup.py build_ext --inplace
+
+cd /cluster/project/cropsci/kzihlmann/dsl-p6-pipeline
+python -c "from simple_knn._C import distCUDA2; print('simple-knn ok')"
 ```
 
-On Euler's `stack/2024-05 gcc/13.2.0 cuda/12.2.1` combination, CUDA may reject the host compiler version while building the last two extensions. If that happens, patch both extension `setup.py` files to add `-allow-unsupported-compiler` to the `nvcc` compile args, remove their `build/` directories, and rerun those two `pip install -e ...` commands.
+Use `python setup.py build_ext --inplace` here instead of `pip install -e ...`.
+On Euler, the editable `pip` path can drop CUDA detection during build metadata generation, while the direct `setup.py` path is reliable.
+
+On Euler's `stack/2024-05 gcc/13.2.0 cuda/12.2.1` combination, CUDA may reject the host compiler version while building the last two extensions.
+If that happens, patch both extension `setup.py` files to add `-allow-unsupported-compiler` to the `nvcc` compile args, remove their `build/` directories, and rerun those two `python setup.py build_ext --inplace` commands.
+
+Any time you recreate or substantially change the `dsl-p6-pipeline` PyTorch stack, rebuild these three 3DGS extensions again.
 
 ## 6. Run the implemented stages interactively first
 
@@ -251,6 +274,9 @@ It prepares `nerfacto-rgba-dataset/` inside each timestep folder, where the SAM3
 The trained Nerfacto outputs, test renders, and exported point cloud are written under each timestep folder in `nerfacto-reconstructions/`.
 The Euler integration uses Nerfacto's `torch` implementation rather than `tcnn`, which avoids an extra `tiny-cuda-nn` build step in the Nerfacto environment.
 After both conda environments exist, `scripts/run_pipeline.py` will automatically hand off step 2 to `dsl-p6-nerfacto` when `reconstruction_method = "nerfacto"`, so the user does not need to switch environments manually between step 1 and step 2.
+
+The automatic handoff only works if both conda environments already exist.
+The pipeline always starts from `dsl-p6-pipeline`, and `run_pipeline.py` uses `conda run -n dsl-p6-nerfacto ...` internally for the Nerfacto branch.
 
 ## 7. Submit through Slurm
 
@@ -290,29 +316,44 @@ If you just want the shortest working setup path on Euler, this is the sequence:
 
 ```bash
 cd /cluster/project/cropsci/kzihlmann/dsl-p6-pipeline
-srun --gpus=1 --pty bash
+srun --gpus=1 --cpus-per-task=4 --mem-per-cpu=8G --time=08:00:00 --pty bash
 module purge
 module load stack/2024-05 gcc/13.2.0 cuda/12.2.1 eth_proxy
 eval "$(conda shell.bash hook)"
 conda env create -f environment-euler.yml
 conda activate dsl-p6-pipeline
+conda env create -f environment-euler-nerfacto.yml
 hf auth login
 git submodule update --init --recursive
-python scripts/create_sam3_masks.py --settings settings_pipeline.txt
-python scripts/create_3dgs_reconstructions.py --settings settings_pipeline.txt
+python -c "import torch; print(torch.__version__); print(torch.version.cuda); print(torch.cuda.is_available())"
+conda list | egrep "pytorch|torchvision|torchaudio|libtorch"
+export CUDA_HOME=$(dirname "$(dirname "$(which nvcc)")")
+export CUDACXX="$CUDA_HOME/bin/nvcc"
+export PATH="$CUDA_HOME/bin:$PATH"
+export LD_LIBRARY_PATH="$CUDA_HOME/lib64:$LD_LIBRARY_PATH"
+TORCH_LIB=$(python -c "import os, torch; print(os.path.join(os.path.dirname(torch.__file__), 'lib'))")
+export LD_LIBRARY_PATH="$TORCH_LIB:$LD_LIBRARY_PATH"
+cd external/Wheat-3DGS/submodules/simple-knn && python setup.py build_ext --inplace
+cd ../diff-gaussian-rasterization && python setup.py build_ext --inplace
+cd ../flashsplat-rasterization && python setup.py build_ext --inplace
+cd /cluster/project/cropsci/kzihlmann/dsl-p6-pipeline
+python -c "from simple_knn._C import distCUDA2; print('simple-knn ok')"
+python scripts/run_pipeline.py --settings settings_pipeline.txt
 sbatch submit_pipeline.slurm
 squeue -u $USER
 ```
 
-For Nerfacto on Euler, use instead:
+If you only want to smoke-test the Nerfacto environment itself, use:
 
 ```bash
 cd /cluster/project/cropsci/kzihlmann/dsl-p6-pipeline
-srun --gpus=1 --pty bash
+srun --gpus=1 --cpus-per-task=4 --mem-per-cpu=8G --time=08:00:00 --pty bash
 module purge
 module load stack/2024-05 gcc/13.2.0 cuda/12.2.1 eth_proxy
 eval "$(conda shell.bash hook)"
 conda env create -f environment-euler-nerfacto.yml
 conda activate dsl-p6-nerfacto
-python scripts/create_nerfacto_reconstructions.py --settings settings_pipeline.txt
+python -c "import torch, torchvision; print(torch.__version__); print(torchvision.__version__); print(torch.version.cuda); print(torch.cuda.is_available())"
+which ns-train
+ns-train --help | head
 ```

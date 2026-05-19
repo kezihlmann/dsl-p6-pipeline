@@ -6,12 +6,14 @@ channels:
 dependencies:
   - python=3.11
   - mkl<2024.1
+  - intel-openmp<2024.1
   - numpy
   - pillow
   - scipy
   - shapely
-  - pytorch=2.5.*
-  - torchvision=0.20.*
+  - pytorch=2.5.1
+  - torchvision=0.20.1
+  - torchaudio=2.5.1
   - pytorch-cuda=12.1
   - pip
   - pip:
