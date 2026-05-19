@@ -73,6 +73,7 @@ That is intentional: the PyTorch conda packages are published for CUDA 12.1, whi
 That combination is normally the practical match on clusters because the loaded CUDA module provides the runtime stack and the 12.1 PyTorch build is compatible with the newer 12.2 driver/runtime environment.
 The conda file intentionally avoids `conda-forge` because the broader mixed-channel solve was getting killed on the Euler login node with exit code `137` during metadata resolution.
 The heavy ML packages come from `pytorch` and `nvidia`, and the Hugging Face, Wheat-3DGS, and Nerfstudio runtime packages are installed through `pip` inside the environment.
+For Euler, Nerfstudio is pinned to `1.1.5` and `av` is pinned to `12.3.0` so the environment resolves to modern wheels instead of backtracking into older source-only combinations.
 
 If the environment already exists and you changed dependencies later, update it with:
 
@@ -215,6 +216,7 @@ If only SAM3 masks under `masks/` are present, it will automatically prepare a c
 For `reconstruction_method = "nerfacto"`, step 2 uses `create_nerfacto_reconstructions.py`.
 It prepares `nerfacto-rgba-dataset/` inside each timestep folder, where the SAM3 mask becomes the alpha channel of an RGBA PNG.
 The trained Nerfacto outputs, test renders, and exported point cloud are written under each timestep folder in `nerfacto-reconstructions/`.
+The Euler integration uses Nerfacto's `torch` implementation rather than `tcnn`, which avoids an extra `tiny-cuda-nn` build step in this repo environment.
 
 ## 7. Submit through Slurm
 
@@ -240,6 +242,7 @@ tail -f logs/dsl-p6-pipeline-<jobid>.out
 - Step 2 expects a COLMAP sparse model to already exist; it does not run COLMAP feature extraction or mapping itself.
 - The 3DGS branch depends on the Wheat-3DGS submodule and its compiled CUDA extensions.
 - The Nerfacto branch depends on `ns-train`, `ns-render`, and `ns-export` being available in the active environment.
+- The Nerfacto branch is pinned for Euler through `nerfstudio==1.1.5` and runs with `--pipeline.model.implementation torch` to avoid a separate `tiny-cuda-nn` installation.
 - `scripts/run_pipeline.py` is the right place to keep orchestrating the three stages as they are implemented.
 - Create the conda environment on a GPU-equipped compute node so the PyTorch and CUDA stack resolve against the same module environment you will use in jobs.
 - Use `squeue -u $USER` to monitor submitted jobs.

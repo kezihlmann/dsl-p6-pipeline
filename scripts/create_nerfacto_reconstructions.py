@@ -313,6 +313,8 @@ def run(settings_path: Path, dry_run: bool, overwrite: bool) -> int:
             "True",
             "--pipeline.model.background-color",
             "random",
+            "--pipeline.model.implementation",
+            "torch",
             "--pipeline.datamanager.train-num-rays-per-batch",
             "2048",
             "--pipeline.datamanager.eval-num-rays-per-batch",
