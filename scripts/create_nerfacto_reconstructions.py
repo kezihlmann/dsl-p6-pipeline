@@ -292,6 +292,29 @@ def find_latest_config(experiment_root: Path) -> Path:
     return config_paths[-1]
 
 
+def write_render_config_override(
+    config_path: Path,
+    images_path_name: str,
+    downscale_factor: int,
+) -> Path:
+    override_path = config_path.with_name(f"{config_path.stem}_render_override.yml")
+    text = config_path.read_text(encoding="utf-8")
+    text = re.sub(
+        r"(\s+images_path:\s+)(.*)",
+        rf"\1!!python/object/apply:pathlib.PosixPath [{images_path_name!r}]",
+        text,
+        count=1,
+    )
+    text = re.sub(
+        r"(\s+downscale_factor:\s+)(.*)",
+        rf"\1{downscale_factor}",
+        text,
+        count=1,
+    )
+    override_path.write_text(text, encoding="utf-8")
+    return override_path
+
+
 def build_experiment_name(frame_root: Path, settings: Settings) -> str:
     resolution_label = "fullres" if settings.resolution_decrease_factor == 1 else f"down{settings.resolution_decrease_factor}"
     return f"nerfacto_rgba_{frame_root.name}_{resolution_label}_{settings.num_iterations}"
@@ -392,11 +415,20 @@ def run(settings_path: Path, dry_run: bool, overwrite: bool) -> int:
         run_command(train_command, repo_root, env, dry_run)
 
         config_path = experiment_root / "_dry_run_config.yml" if dry_run else find_latest_config(experiment_root)
+        render_config_path = config_path
+        render_downscale_factor = settings.resolution_decrease_factor
+        if not dry_run and settings.resolution_decrease_factor > 1:
+            render_config_path = write_render_config_override(
+                config_path=config_path,
+                images_path_name=images_path_name,
+                downscale_factor=1,
+            )
+            render_downscale_factor = 1
         render_command = [
             "ns-render",
             "dataset",
             "--load-config",
-            str(config_path),
+            str(render_config_path),
             "--output-path",
             str(render_root),
             "--split",
@@ -408,7 +440,7 @@ def run(settings_path: Path, dry_run: bool, overwrite: bool) -> int:
             "--image-format",
             "png",
             "--downscale-factor",
-            str(settings.resolution_decrease_factor),
+            str(render_downscale_factor),
             "--eval-num-rays-per-chunk",
             "4096",
         ]
