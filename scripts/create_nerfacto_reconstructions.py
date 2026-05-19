@@ -176,6 +176,37 @@ def collect_images(images_dir: Path) -> list[Path]:
     return sorted(set(image_paths))
 
 
+def write_link_or_copy(source_path: Path, target_path: Path) -> None:
+    if target_path.exists() or target_path.is_symlink():
+        target_path.unlink()
+    try:
+        target_path.symlink_to(source_path.name)
+    except OSError:
+        shutil.copy2(source_path, target_path)
+
+
+def prepare_downscaled_images(dataset_root: Path, factor: int) -> Path:
+    source_dir = dataset_root / "images"
+    target_dir = dataset_root / f"images_{factor}"
+    target_dir.mkdir(parents=True, exist_ok=True)
+
+    for png_path in sorted(source_dir.glob("*.png")):
+        out_png = target_dir / png_path.name
+        if not out_png.exists():
+            image = Image.open(png_path).convert("RGBA")
+            width, height = image.size
+            downscaled = image.resize(
+                (max(1, width // factor), max(1, height // factor)),
+                Image.Resampling.LANCZOS,
+            )
+            downscaled.save(out_png)
+
+        jpg_link = target_dir / f"{png_path.stem}.jpg"
+        write_link_or_copy(out_png, jpg_link)
+
+    return target_dir
+
+
 def prepare_rgba_dataset(frame_root: Path, overwrite: bool) -> Path:
     ensure_sparse_zero(frame_root)
 
@@ -218,6 +249,9 @@ def prepare_rgba_dataset(frame_root: Path, overwrite: bool) -> Path:
 
         rgba = Image.merge("RGBA", (*rgb.split(), alpha))
         rgba.save(out_path)
+        if image_path.suffix.lower() != ".png":
+            alias_path = dataset_images / image_path.name
+            write_link_or_copy(out_path, alias_path)
 
     if missing_masks:
         preview = ", ".join(missing_masks[:5])
@@ -285,6 +319,12 @@ def run(settings_path: Path, dry_run: bool, overwrite: bool) -> int:
 
     for _, frame_root in selected_timesteps:
         dataset_root = prepare_rgba_dataset(frame_root, overwrite=overwrite)
+        images_path_name = "images"
+        downscale_factor = settings.resolution_decrease_factor
+        if settings.resolution_decrease_factor > 1:
+            prepare_downscaled_images(dataset_root, settings.resolution_decrease_factor)
+            images_path_name = f"images_{settings.resolution_decrease_factor}"
+            downscale_factor = 1
         recon_root = frame_root / "nerfacto-reconstructions"
         experiment_name = build_experiment_name(frame_root, settings)
         experiment_root = recon_root / experiment_name
@@ -296,6 +336,7 @@ def run(settings_path: Path, dry_run: bool, overwrite: bool) -> int:
 
         print(f"\nProcessing {frame_root.name}")
         print(f"Prepared RGBA dataset: {dataset_root}")
+        print(f"Images path for Nerfacto: {dataset_root / images_path_name}")
         print(f"Experiment root: {experiment_root}")
 
         train_command = [
@@ -323,11 +364,11 @@ def run(settings_path: Path, dry_run: bool, overwrite: bool) -> int:
             "--data",
             str(dataset_root),
             "--images-path",
-            "images",
+            images_path_name,
             "--colmap-path",
             "sparse/0",
             "--downscale-factor",
-            str(settings.resolution_decrease_factor),
+            str(downscale_factor),
         ]
         run_command(train_command, repo_root, env, dry_run)
 
