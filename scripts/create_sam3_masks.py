@@ -52,7 +52,7 @@ def parse_settings(settings_path: Path) -> Settings:
 		first_timestep=int(values["first_timestep"]),
 		last_timestep=int(values["last_timestep"]),
 		num_timesteps=int(values.get("num_timesteps", values.get("number_of_timesteps", 1))),
-		replace_existing_masks=bool(values["replace_existing_masks"]),
+		replace_existing_masks=bool(values.get("replace_existing_masks", False)),
 		sam_3_prompt=str(values["sam_3_prompt"]),
 	)
 
