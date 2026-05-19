@@ -281,6 +281,7 @@ def run_command(command: list[str], cwd: Path, env: dict[str, str], dry_run: boo
 def build_environment() -> dict[str, str]:
     env = os.environ.copy()
     env.setdefault("PYTORCH_CUDA_ALLOC_CONF", "expandable_segments:True")
+    env.setdefault("MKL_THREADING_LAYER", "GNU")
     return env
 
 
@@ -321,10 +322,16 @@ def run(settings_path: Path, dry_run: bool, overwrite: bool) -> int:
         dataset_root = prepare_rgba_dataset(frame_root, overwrite=overwrite)
         images_path_name = "images"
         downscale_factor = settings.resolution_decrease_factor
+        resolution_mode_message = "Using original-resolution RGBA images."
         if settings.resolution_decrease_factor > 1:
             prepare_downscaled_images(dataset_root, settings.resolution_decrease_factor)
             images_path_name = f"images_{settings.resolution_decrease_factor}"
             downscale_factor = 1
+            resolution_mode_message = (
+                f"Using pre-downscaled RGBA images in {images_path_name}; "
+                f"effective resolution decrease factor is {settings.resolution_decrease_factor}, "
+                "so Nerfstudio itself is run with --downscale-factor 1."
+            )
         recon_root = frame_root / "nerfacto-reconstructions"
         experiment_name = build_experiment_name(frame_root, settings)
         experiment_root = recon_root / experiment_name
@@ -337,7 +344,9 @@ def run(settings_path: Path, dry_run: bool, overwrite: bool) -> int:
         print(f"\nProcessing {frame_root.name}")
         print(f"Prepared RGBA dataset: {dataset_root}")
         print(f"Images path for Nerfacto: {dataset_root / images_path_name}")
+        print(resolution_mode_message)
         print(f"Experiment root: {experiment_root}")
+        print(f"Target Nerfacto iterations: {settings.num_iterations}")
 
         train_command = [
             "ns-train",
@@ -350,12 +359,22 @@ def run(settings_path: Path, dry_run: bool, overwrite: bool) -> int:
             str(settings.num_iterations),
             "--vis",
             "tensorboard",
+            "--steps-per-save",
+            "2000",
+            "--steps-per-eval-batch",
+            "1000000",
+            "--steps-per-eval-image",
+            "1000000",
+            "--steps-per-eval-all-images",
+            "1000000",
             "--viewer.quit-on-train-completion",
             "True",
             "--pipeline.model.background-color",
             "random",
             "--pipeline.model.implementation",
             "torch",
+            "--pipeline.model.eval-num-rays-per-chunk",
+            "4096",
             "--pipeline.datamanager.train-num-rays-per-batch",
             "2048",
             "--pipeline.datamanager.eval-num-rays-per-batch",
