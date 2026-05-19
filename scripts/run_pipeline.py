@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import argparse
 import ast
+import os
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -15,6 +17,11 @@ SCRIPT_BY_STEP = {
 STEP_2_SCRIPT_BY_METHOD = {
     "3dgs": "create_3dgs_reconstructions.py",
     "nerfacto": "create_nerfacto_reconstructions.py",
+}
+
+DEFAULT_ENV_BY_RECONSTRUCTION_METHOD = {
+    "3dgs": "dsl-p6-pipeline",
+    "nerfacto": "dsl-p6-nerfacto",
 }
 
 
@@ -32,6 +39,48 @@ def parse_settings(settings_path: Path) -> dict[str, object]:
         except (SyntaxError, ValueError):
             values[key] = raw_value.strip('"')
     return values
+
+
+def resolve_conda_executable() -> str | None:
+    conda_exe = os.environ.get("CONDA_EXE")
+    if conda_exe:
+        return conda_exe
+    return shutil.which("conda")
+
+
+def build_command_for_step(
+    step_name: str,
+    script_path: Path,
+    settings_path: Path,
+    settings: dict[str, object],
+) -> list[str]:
+    if step_name != "step_2":
+        return [sys.executable, str(script_path), "--settings", str(settings_path)]
+
+    reconstruction_method = str(settings.get("reconstruction_method", "3dgs")).strip().lower()
+    env_name = DEFAULT_ENV_BY_RECONSTRUCTION_METHOD[reconstruction_method]
+
+    if reconstruction_method == "3dgs":
+        return [sys.executable, str(script_path), "--settings", str(settings_path)]
+
+    conda_executable = resolve_conda_executable()
+    if conda_executable is None:
+        raise RuntimeError(
+            "Could not find the conda executable. "
+            "Activate the base conda setup before running the pipeline so step 2 can switch into the Nerfacto environment automatically."
+        )
+
+    return [
+        conda_executable,
+        "run",
+        "--no-capture-output",
+        "-n",
+        env_name,
+        "python",
+        str(script_path),
+        "--settings",
+        str(settings_path),
+    ]
 
 
 def main() -> int:
@@ -66,7 +115,12 @@ def main() -> int:
             script_name = SCRIPT_BY_STEP[step_name]
 
         script_path = scripts_dir / script_name
-        command = [sys.executable, str(script_path), "--settings", str(settings_path)]
+        command = build_command_for_step(
+            step_name=step_name,
+            script_path=script_path,
+            settings_path=settings_path,
+            settings=settings,
+        )
         print(f"Running {step_name}: {' '.join(command)}")
         subprocess.run(command, cwd=repo_root, check=True)
 

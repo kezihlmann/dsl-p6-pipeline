@@ -233,7 +233,7 @@ def require_executable(name: str) -> None:
     if shutil.which(name) is None:
         raise FileNotFoundError(
             f"Required executable '{name}' was not found on PATH. "
-            "Install Nerfstudio in the active environment before running Nerfacto reconstruction."
+            "Activate the dedicated Nerfacto environment from environment-euler-nerfacto.yml before running Nerfacto reconstruction."
         )
 
 

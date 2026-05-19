@@ -18,8 +18,6 @@ dependencies:
       - transformers
       - huggingface_hub
       - wandb
-      - av==12.3.0
-      - nerfstudio==1.1.5
       - plyfile
       - ffmpeg-python
       - lpips

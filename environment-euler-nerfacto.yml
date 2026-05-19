@@ -1,0 +1,15 @@
+name: dsl-p6-nerfacto
+channels:
+  - pytorch
+  - nvidia
+  - defaults
+dependencies:
+  - python=3.11
+  - pytorch=2.5.1
+  - torchvision=0.20.1
+  - torchaudio=2.5.1
+  - pytorch-cuda=12.1
+  - pip
+  - pip:
+      - av==12.3.0
+      - nerfstudio==1.1.5
