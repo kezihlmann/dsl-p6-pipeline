@@ -12,4 +12,5 @@ __pycache__/
 logs/
 .ipynb_checkpoints/
 3dgs_project/
+nerfstudio_project/
 

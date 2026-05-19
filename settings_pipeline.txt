@@ -1,8 +1,8 @@
 # ------------------------------------
 # Pipeline settings - this pipeline is divided into 3 steps:
 # step 1: sam-3 masks
-# step 2: 3dgs reconstructions
-#         this step checks whether sparse/0 already exists and runs COLMAP prep first if needed
+# step 2: 3d reconstruction
+#         choose between 3dgs and nerfacto with reconstruction_method
 # step 3: video generation
 # ------------------------------------
 
@@ -11,6 +11,7 @@
 # ------------------------------------
 input_folder = "data/maize_4"
 output_folder = "data/maize_4"
+reconstruction_method = "3dgs"
 first_timestep = 2004
 last_timestep = 2004
 number_of_timesteps = 1
@@ -25,13 +26,16 @@ replace_existing_masks = False
 sam_3_prompt = "plant"
 
 # ------------------------------------
-# STEP 2: 3dgs reconstructions
-# COLMAP preparation is run automatically first when sparse/0 is missing
+# STEP 2: Reconstruction method
+# Choose "3dgs" or "nerfacto"
+# Both methods require a provided COLMAP sparse model.
 # ------------------------------------
 initial_number_of_points = 10000
 
 # ------------------------------------
-# STEP 2 options for 3d-reconstruction using 3dgs
+# STEP 2 options for reconstruction
+# loss is only used by the 3dgs branch.
+# resolution_decrease_factor and number_of_iteration are used by both branches.
 # ------------------------------------
 # loss: "silhouette" or "alpha"
 loss = "silhouette"

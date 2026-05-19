@@ -8,6 +8,7 @@ This repository now has three implemented stages:
 - `scripts/create_sam3_masks.py`: implemented from the notebook template
 - `scripts/create_colmap.py`: normalizes a provided COLMAP sparse model into the Wheat-3DGS-ready `sparse/0` layout
 - `scripts/create_3dgs_reconstructions.py`: patches Wheat-3DGS for external alpha masks and runs train/render
+- `scripts/create_nerfacto_reconstructions.py`: prepares RGBA Nerfstudio datasets from SAM3 masks and runs train/render/export
 - `scripts/create_video.py`: TODO placeholder
 - `scripts/run_pipeline.py`: runs enabled steps from `settings_pipeline.txt`
 - `submit_pipeline.slurm`: Slurm entrypoint for Euler
@@ -71,7 +72,7 @@ The environment file is pinned to `pytorch=2.5.*`, `torchvision=0.20.*`, and `py
 That is intentional: the PyTorch conda packages are published for CUDA 12.1, while your Euler module stack uses `cuda/12.2.1`.
 That combination is normally the practical match on clusters because the loaded CUDA module provides the runtime stack and the 12.1 PyTorch build is compatible with the newer 12.2 driver/runtime environment.
 The conda file intentionally avoids `conda-forge` because the broader mixed-channel solve was getting killed on the Euler login node with exit code `137` during metadata resolution.
-The heavy ML packages come from `pytorch` and `nvidia`, and the Hugging Face plus Wheat-3DGS runtime packages are installed through `pip` inside the environment.
+The heavy ML packages come from `pytorch` and `nvidia`, and the Hugging Face, Wheat-3DGS, and Nerfstudio runtime packages are installed through `pip` inside the environment.
 
 If the environment already exists and you changed dependencies later, update it with:
 
@@ -193,8 +194,8 @@ module load stack/2024-05 gcc/13.2.0 cuda/12.2.1 eth_proxy
 eval "$(conda shell.bash hook)"
 conda activate dsl-p6-pipeline
 python scripts/create_sam3_masks.py --settings settings_pipeline.txt
-python scripts/create_colmap.py --settings settings_pipeline.txt
 python scripts/create_3dgs_reconstructions.py --settings settings_pipeline.txt
+python scripts/create_nerfacto_reconstructions.py --settings settings_pipeline.txt
 ```
 
 Your current settings expect data at:
@@ -205,11 +206,15 @@ Your current settings expect data at:
 
 Step 2 requires a provided COLMAP sparse model in each selected timestep folder.
 If `sparse/0` already exists, it will be reused directly.
-If only `sparse/` exists, `create_colmap.py` will normalize it into `sparse/0`.
+If only `sparse/` exists, the reconstruction scripts will normalize it into `sparse/0`.
 If no sparse model is present, step 2 will stop and ask you to provide one.
 
-Step 3 will use `masks_binary_active` if it already exists.
-If only SAM3 masks under `masks/` are present, `create_3dgs_reconstructions.py` will automatically prepare a compatible `masks_binary_active` folder for Wheat-3DGS.
+For `reconstruction_method = "3dgs"`, step 2 uses `create_3dgs_reconstructions.py` and writes outputs under each timestep folder in `3dgs-reconstructions/`.
+If only SAM3 masks under `masks/` are present, it will automatically prepare a compatible `masks_binary_active` folder for Wheat-3DGS.
+
+For `reconstruction_method = "nerfacto"`, step 2 uses `create_nerfacto_reconstructions.py`.
+It prepares `nerfacto-rgba-dataset/` inside each timestep folder, where the SAM3 mask becomes the alpha channel of an RGBA PNG.
+The trained Nerfacto outputs, test renders, and exported point cloud are written under each timestep folder in `nerfacto-reconstructions/`.
 
 ## 7. Submit through Slurm
 
@@ -231,10 +236,11 @@ tail -f logs/dsl-p6-pipeline-<jobid>.out
 
 ## Notes
 
-- `settings_pipeline.txt` currently enables only step 1 by default; enable steps 2 and 3 when you want the full reconstruction run through `scripts/run_pipeline.py`.
+- `settings_pipeline.txt` can choose the step-2 branch with `reconstruction_method = "3dgs"` or `reconstruction_method = "nerfacto"`.
 - Step 2 expects a COLMAP sparse model to already exist; it does not run COLMAP feature extraction or mapping itself.
-- Step 3 depends on the Wheat-3DGS submodule and its compiled CUDA extensions.
-- `scripts/run_pipeline.py` is the right place to keep orchestrating the four stages as they are implemented.
+- The 3DGS branch depends on the Wheat-3DGS submodule and its compiled CUDA extensions.
+- The Nerfacto branch depends on `ns-train`, `ns-render`, and `ns-export` being available in the active environment.
+- `scripts/run_pipeline.py` is the right place to keep orchestrating the three stages as they are implemented.
 - Create the conda environment on a GPU-equipped compute node so the PyTorch and CUDA stack resolve against the same module environment you will use in jobs.
 - Use `squeue -u $USER` to monitor submitted jobs.
 - There is no separate `requirements-euler.txt` anymore; the conda environment in `environment-euler.yml` is the single source of truth for Euler.
@@ -254,8 +260,8 @@ conda activate dsl-p6-pipeline
 hf auth login
 git submodule update --init --recursive
 python scripts/create_sam3_masks.py --settings settings_pipeline.txt
-python scripts/create_colmap.py --settings settings_pipeline.txt
 python scripts/create_3dgs_reconstructions.py --settings settings_pipeline.txt
+python scripts/create_nerfacto_reconstructions.py --settings settings_pipeline.txt
 sbatch submit_pipeline.slurm
 squeue -u $USER
 ```
