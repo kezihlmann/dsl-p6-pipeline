@@ -307,8 +307,9 @@ def ensure_sparse_zero(frame_root: Path) -> None:
     sparse_zero = frame_root / "sparse" / "0"
     if not sparse_zero.exists():
         raise FileNotFoundError(
-            f"Prepared sparse/0 directory missing for {frame_root}. "
-            "Automatic COLMAP preparation should have created it before reconstruction."
+            f"Missing COLMAP sparse model for {frame_root.name} at {frame_root}. "
+            "Step 2 requires a provided sparse model before 3DGS reconstruction can start. "
+            "Expected either 'sparse/0' or a 'sparse' folder that can be normalized into 'sparse/0'."
         )
 
 

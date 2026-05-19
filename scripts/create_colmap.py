@@ -93,8 +93,9 @@ def ensure_sparse_zero(frame_root: Path) -> None:
 	sparse_root = frame_root / "sparse"
 	if not sparse_root.exists():
 		raise FileNotFoundError(
-			f"No sparse directory found in {frame_root}. "
-			"Please provide an existing COLMAP sparse model before running step 2."
+			f"Missing COLMAP sparse model for {frame_root.name} at {frame_root}. "
+			"Step 2 requires a provided sparse model. "
+			"Expected either 'sparse/0' or a 'sparse' folder that can be normalized into 'sparse/0'."
 		)
 
 	zero_dir = sparse_root / "0"
