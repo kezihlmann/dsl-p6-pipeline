@@ -5,6 +5,8 @@ channels:
   - defaults
 dependencies:
   - python=3.11
+  - mkl<2024.1
+  - intel-openmp<2024.1
   - pytorch=2.5.1
   - torchvision=0.20.1
   - torchaudio=2.5.1
