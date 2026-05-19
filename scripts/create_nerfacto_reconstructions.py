@@ -448,11 +448,11 @@ def run(settings_path: Path, dry_run: bool, overwrite: bool) -> int:
             "depth",
             "--image-format",
             "png",
-            "--downscale-factor",
-            str(render_downscale_factor),
             "--eval-num-rays-per-chunk",
             "4096",
         ]
+        if render_downscale_factor > 1:
+            render_command.extend(["--downscale-factor", str(render_downscale_factor)])
         export_command = [
             "ns-export",
             "pointcloud",
