@@ -6,15 +6,14 @@
 # step 3: video generation
 # ------------------------------------
 
+
 # ------------------------------------
 # General settings
 # ------------------------------------
 input_folder = "data/maize_4"
-output_folder = "data/maize_4"
-reconstruction_method = "3dgs"
 first_timestep = 2004
 last_timestep = 2004
-number_of_timesteps = 1
+num_timesteps = 1
 step_1 = True
 step_2 = True
 step_3 = False
@@ -26,21 +25,12 @@ replace_existing_masks = False
 sam_3_prompt = "plant"
 
 # ------------------------------------
-# STEP 2: Reconstruction method
-# Choose "3dgs" or "nerfacto"
-# Both methods require a provided COLMAP sparse model.
+# STEP 2: Reconstruction
+# Both methods "3dgs" and "nerfacto" require a provided COLMAP sparse model.
 # ------------------------------------
-initial_number_of_points = 10000
-
-# ------------------------------------
-# STEP 2 options for reconstruction
-# loss is only used by the 3dgs branch.
-# resolution_decrease_factor and number_of_iteration are used by both branches.
-# ------------------------------------
-# loss: "silhouette" or "alpha"
-loss = "silhouette"
+reconstruction_method = "3dgs"
 resolution_decrease_factor = 4
-number_of_iteration = 4000
+num_iterations = 4000
 
 # ------------------------------------
 # STEP 3: Video generation

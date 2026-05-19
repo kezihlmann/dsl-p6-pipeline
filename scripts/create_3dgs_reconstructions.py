@@ -20,13 +20,11 @@ DEFAULT_TEST_ITERATIONS = (1000, 3000, 7000, 10000)
 @dataclass
 class Settings:
     input_folder: str
-    output_folder: str
     first_timestep: int
     last_timestep: int
-    number_of_timesteps: int
-    loss: str
+    num_timesteps: int
     resolution_decrease_factor: int
-    number_of_iteration: int
+    num_iterations: int
 
 
 def parse_settings(settings_path: Path) -> Settings:
@@ -45,13 +43,11 @@ def parse_settings(settings_path: Path) -> Settings:
 
     return Settings(
         input_folder=str(values["input_folder"]),
-        output_folder=str(values["output_folder"]),
         first_timestep=int(values["first_timestep"]),
         last_timestep=int(values["last_timestep"]),
-        number_of_timesteps=int(values["number_of_timesteps"]),
-        loss=str(values.get("loss", "silhouette")),
+        num_timesteps=int(values.get("num_timesteps", values.get("number_of_timesteps", 1))),
         resolution_decrease_factor=int(values.get("resolution_decrease_factor", 1)),
-        number_of_iteration=int(values.get("number_of_iteration", 15000)),
+        num_iterations=int(values.get("num_iterations", values.get("number_of_iteration", 15000))),
     )
 
 
@@ -77,9 +73,9 @@ def choose_timesteps(available: list[tuple[int, Path]], settings: Settings) -> l
             f"No timestep folders found between {settings.first_timestep} and {settings.last_timestep}."
         )
 
-    requested = min(settings.number_of_timesteps, len(filtered))
+    requested = min(settings.num_timesteps, len(filtered))
     if requested <= 0:
-        raise ValueError("number_of_timesteps must be at least 1.")
+        raise ValueError("num_timesteps must be at least 1.")
     if requested == len(filtered):
         return filtered
     if requested == 1:
@@ -384,7 +380,7 @@ def build_model_dir(frame_root: Path, settings: Settings) -> Path:
     folder_name = (
         f"{frame_root.name}_masked_"
         f"{resolution_label(settings.resolution_decrease_factor)}_"
-        f"16train6test_{settings.number_of_iteration}"
+        f"16train6test_{settings.num_iterations}"
     )
     return frame_root / "3dgs-reconstructions" / folder_name
 
@@ -464,9 +460,6 @@ def run(settings_path: Path, repo_dir: Path, dry_run: bool, overwrite: bool) -> 
 
     if not input_root.exists():
         raise FileNotFoundError(f"Input folder does not exist: {input_root}")
-    if settings.loss not in {"alpha", "silhouette"}:
-        raise ValueError("loss must be either 'alpha' or 'silhouette'")
-
     available_timesteps = find_available_timesteps(input_root)
     selected_timesteps = choose_timesteps(available_timesteps, settings)
     patched_files = patch_wheat_3dgs(repo_dir)
@@ -481,14 +474,11 @@ def run(settings_path: Path, repo_dir: Path, dry_run: bool, overwrite: bool) -> 
     else:
         print("Wheat-3DGS patches already applied")
 
-    print(
-        f"Using colleague-compatible masked RGB training. "
-        f"Legacy settings value loss={settings.loss!r} is accepted but not used as a separate training loss."
-    )
+    print("Using colleague-compatible masked RGB training.")
 
     env = build_environment(repo_dir)
-    save_iterations = select_iterations(settings.number_of_iteration, DEFAULT_SAVE_ITERATIONS)
-    test_iterations = select_iterations(settings.number_of_iteration, DEFAULT_TEST_ITERATIONS)
+    save_iterations = select_iterations(settings.num_iterations, DEFAULT_SAVE_ITERATIONS)
+    test_iterations = select_iterations(settings.num_iterations, DEFAULT_TEST_ITERATIONS)
 
     for _, frame_root in selected_timesteps:
         masks_dir = ensure_prepared_timestep(frame_root)
@@ -519,7 +509,7 @@ def run(settings_path: Path, repo_dir: Path, dry_run: bool, overwrite: bool) -> 
             "--resolution",
             str(settings.resolution_decrease_factor),
             "--iterations",
-            str(settings.number_of_iteration),
+            str(settings.num_iterations),
             "--save_iterations",
             *[str(value) for value in save_iterations],
             "--test_iterations",
@@ -533,7 +523,7 @@ def run(settings_path: Path, repo_dir: Path, dry_run: bool, overwrite: bool) -> 
             "-m",
             str(model_dir),
             "--iteration",
-            str(settings.number_of_iteration),
+            str(settings.num_iterations),
             "--resolution",
             str(settings.resolution_decrease_factor),
         ]

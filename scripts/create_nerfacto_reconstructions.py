@@ -21,13 +21,12 @@ DEFAULT_EXPORT_POINTS = 10000
 @dataclass
 class Settings:
     input_folder: str
-    output_folder: str
     first_timestep: int
     last_timestep: int
-    number_of_timesteps: int
+    num_timesteps: int
     reconstruction_method: str
     resolution_decrease_factor: int
-    number_of_iteration: int
+    num_iterations: int
 
 
 def parse_settings(settings_path: Path) -> Settings:
@@ -46,13 +45,12 @@ def parse_settings(settings_path: Path) -> Settings:
 
     return Settings(
         input_folder=str(values["input_folder"]),
-        output_folder=str(values["output_folder"]),
         first_timestep=int(values["first_timestep"]),
         last_timestep=int(values["last_timestep"]),
-        number_of_timesteps=int(values["number_of_timesteps"]),
+        num_timesteps=int(values.get("num_timesteps", values.get("number_of_timesteps", 1))),
         reconstruction_method=str(values.get("reconstruction_method", "3dgs")),
         resolution_decrease_factor=int(values.get("resolution_decrease_factor", 1)),
-        number_of_iteration=int(values.get("number_of_iteration", 30000)),
+        num_iterations=int(values.get("num_iterations", values.get("number_of_iteration", 30000))),
     )
 
 
@@ -78,9 +76,9 @@ def choose_timesteps(available: list[tuple[int, Path]], settings: Settings) -> l
             f"No timestep folders found between {settings.first_timestep} and {settings.last_timestep}."
         )
 
-    requested = min(settings.number_of_timesteps, len(filtered))
+    requested = min(settings.num_timesteps, len(filtered))
     if requested <= 0:
-        raise ValueError("number_of_timesteps must be at least 1.")
+        raise ValueError("num_timesteps must be at least 1.")
     if requested == len(filtered):
         return filtered
     if requested == 1:
@@ -261,7 +259,7 @@ def find_latest_config(experiment_root: Path) -> Path:
 
 def build_experiment_name(frame_root: Path, settings: Settings) -> str:
     resolution_label = "fullres" if settings.resolution_decrease_factor == 1 else f"down{settings.resolution_decrease_factor}"
-    return f"nerfacto_rgba_{frame_root.name}_{resolution_label}_{settings.number_of_iteration}"
+    return f"nerfacto_rgba_{frame_root.name}_{resolution_label}_{settings.num_iterations}"
 
 
 def run(settings_path: Path, dry_run: bool, overwrite: bool) -> int:
@@ -308,7 +306,7 @@ def run(settings_path: Path, dry_run: bool, overwrite: bool) -> int:
             "--experiment-name",
             experiment_name,
             "--max-num-iterations",
-            str(settings.number_of_iteration),
+            str(settings.num_iterations),
             "--vis",
             "tensorboard",
             "--viewer.quit-on-train-completion",
