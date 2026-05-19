@@ -299,18 +299,27 @@ def write_render_config_override(
 ) -> Path:
     override_path = config_path.with_name(f"{config_path.stem}_render_override.yml")
     text = config_path.read_text(encoding="utf-8")
-    text = re.sub(
-        r"(\s+images_path:\s+)(.*)",
-        rf"\1!!python/object/apply:pathlib.PosixPath [{images_path_name!r}]",
+    image_replacement = f"      images_path: !!python/object/apply:pathlib.PosixPath\n      - {images_path_name}\n"
+    text, image_count = re.subn(
+        r"^\s+images_path:\s+.*(?:\n\s+- .*)?$",
+        image_replacement.rstrip("\n"),
         text,
         count=1,
+        flags=re.MULTILINE,
     )
-    text = re.sub(
-        r"(\s+downscale_factor:\s+)(.*)",
-        rf"\1{downscale_factor}",
+    if image_count != 1:
+        raise ValueError(f"Failed to patch images_path in {config_path}")
+
+    text, downscale_count = re.subn(
+        r"^(\s+downscale_factor:\s+).*$",
+        lambda match: f"{match.group(1)}{downscale_factor}",
         text,
         count=1,
+        flags=re.MULTILINE,
     )
+    if downscale_count != 1:
+        raise ValueError(f"Failed to patch downscale_factor in {config_path}")
+
     override_path.write_text(text, encoding="utf-8")
     return override_path
 
