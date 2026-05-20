@@ -185,28 +185,6 @@ def write_link_or_copy(source_path: Path, target_path: Path) -> None:
         shutil.copy2(source_path, target_path)
 
 
-def prepare_downscaled_images(dataset_root: Path, factor: int) -> Path:
-    source_dir = dataset_root / "images"
-    target_dir = dataset_root / f"images_{factor}"
-    target_dir.mkdir(parents=True, exist_ok=True)
-
-    for png_path in sorted(source_dir.glob("*.png")):
-        out_png = target_dir / png_path.name
-        if not out_png.exists():
-            image = Image.open(png_path).convert("RGBA")
-            width, height = image.size
-            downscaled = image.resize(
-                (max(1, width // factor), max(1, height // factor)),
-                Image.Resampling.LANCZOS,
-            )
-            downscaled.save(out_png)
-
-        jpg_link = target_dir / f"{png_path.stem}.jpg"
-        write_link_or_copy(out_png, jpg_link)
-
-    return target_dir
-
-
 def prepare_rgba_dataset(frame_root: Path, overwrite: bool) -> Path:
     ensure_sparse_zero(frame_root)
 
@@ -292,38 +270,6 @@ def find_latest_config(experiment_root: Path) -> Path:
     return config_paths[-1]
 
 
-def write_render_config_override(
-    config_path: Path,
-    images_path_name: str,
-    downscale_factor: int,
-) -> Path:
-    override_path = config_path.with_name(f"{config_path.stem}_render_override.yml")
-    text = config_path.read_text(encoding="utf-8")
-    image_replacement = f"      images_path: !!python/object/apply:pathlib.PosixPath\n      - {images_path_name}\n"
-    text, image_count = re.subn(
-        r"^\s+images_path:\s+.*(?:\n\s+- .*)?$",
-        image_replacement.rstrip("\n"),
-        text,
-        count=1,
-        flags=re.MULTILINE,
-    )
-    if image_count != 1:
-        raise ValueError(f"Failed to patch images_path in {config_path}")
-
-    text, downscale_count = re.subn(
-        r"^(\s+downscale_factor:\s+).*$",
-        lambda match: f"{match.group(1)}{downscale_factor}",
-        text,
-        count=1,
-        flags=re.MULTILINE,
-    )
-    if downscale_count != 1:
-        raise ValueError(f"Failed to patch downscale_factor in {config_path}")
-
-    override_path.write_text(text, encoding="utf-8")
-    return override_path
-
-
 def build_experiment_name(frame_root: Path, settings: Settings) -> str:
     resolution_label = "fullres" if settings.resolution_decrease_factor == 1 else f"down{settings.resolution_decrease_factor}"
     return f"nerfacto_rgba_{frame_root.name}_{resolution_label}_{settings.num_iterations}"
@@ -353,17 +299,12 @@ def run(settings_path: Path, dry_run: bool, overwrite: bool) -> int:
     for _, frame_root in selected_timesteps:
         dataset_root = prepare_rgba_dataset(frame_root, overwrite=overwrite)
         images_path_name = "images"
-        downscale_factor = settings.resolution_decrease_factor
-        resolution_mode_message = "Using original-resolution RGBA images."
-        if settings.resolution_decrease_factor > 1:
-            prepare_downscaled_images(dataset_root, settings.resolution_decrease_factor)
-            images_path_name = f"images_{settings.resolution_decrease_factor}"
-            downscale_factor = 1
-            resolution_mode_message = (
-                f"Using pre-downscaled RGBA images in {images_path_name}; "
-                f"effective resolution decrease factor is {settings.resolution_decrease_factor}, "
-                "so Nerfstudio itself is run with --downscale-factor 1."
-            )
+        train_downscale_factor = 1
+        resolution_mode_message = (
+            "Following the reference nerfstudio_project workflow: "
+            "Nerfacto trains from images/ with --downscale-factor 1. "
+            f"resolution_decrease_factor={settings.resolution_decrease_factor} is only applied later during rendering."
+        )
         recon_root = frame_root / "nerfacto-reconstructions"
         experiment_name = build_experiment_name(frame_root, settings)
         experiment_root = recon_root / experiment_name
@@ -392,21 +333,13 @@ def run(settings_path: Path, dry_run: bool, overwrite: bool) -> int:
             "--vis",
             "tensorboard",
             "--steps-per-save",
-            "2000",
-            "--steps-per-eval-batch",
-            "1000000",
+            "5000",
             "--steps-per-eval-image",
             "1000000",
             "--steps-per-eval-all-images",
             "1000000",
-            "--viewer.quit-on-train-completion",
-            "True",
             "--pipeline.model.background-color",
             "random",
-            "--pipeline.model.implementation",
-            "torch",
-            "--pipeline.model.eval-num-rays-per-chunk",
-            "4096",
             "--pipeline.datamanager.train-num-rays-per-batch",
             "2048",
             "--pipeline.datamanager.eval-num-rays-per-batch",
@@ -419,25 +352,16 @@ def run(settings_path: Path, dry_run: bool, overwrite: bool) -> int:
             "--colmap-path",
             "sparse/0",
             "--downscale-factor",
-            str(downscale_factor),
+            str(train_downscale_factor),
         ]
         run_command(train_command, repo_root, env, dry_run)
 
         config_path = experiment_root / "_dry_run_config.yml" if dry_run else find_latest_config(experiment_root)
-        render_config_path = config_path
-        render_downscale_factor = settings.resolution_decrease_factor
-        if not dry_run and settings.resolution_decrease_factor > 1:
-            render_config_path = write_render_config_override(
-                config_path=config_path,
-                images_path_name=images_path_name,
-                downscale_factor=1,
-            )
-            render_downscale_factor = 1
         render_command = [
             "ns-render",
             "dataset",
             "--load-config",
-            str(render_config_path),
+            str(config_path),
             "--output-path",
             str(render_root),
             "--split",
@@ -451,8 +375,8 @@ def run(settings_path: Path, dry_run: bool, overwrite: bool) -> int:
             "--eval-num-rays-per-chunk",
             "4096",
         ]
-        if render_downscale_factor > 1:
-            render_command.extend(["--downscale-factor", str(render_downscale_factor)])
+        if settings.resolution_decrease_factor > 1:
+            render_command.extend(["--downscale-factor", str(settings.resolution_decrease_factor)])
         export_command = [
             "ns-export",
             "pointcloud",

@@ -138,9 +138,12 @@ pytorch::pytorch=2.5.1
 pytorch::torchvision=0.20.1
 pytorch::torchaudio=2.5.1
 pytorch::pytorch-cuda=12.1
+tcnn via tiny-cuda-nn
 nerfstudio==1.1.5
 av==12.3.0
 ```
+
+If `dsl-p6-nerfacto` already exists from an older checkout, recreate it or update it so the reference Nerfacto backend dependencies are installed too.
 
 Verify the Nerfacto environment with:
 
@@ -260,7 +263,8 @@ If only SAM3 masks under `masks/` are present, it will automatically prepare a c
 For `reconstruction_method = "nerfacto"`, step 2 uses `create_nerfacto_reconstructions.py`.
 It prepares `nerfacto-rgba-dataset/` inside each timestep folder, where the SAM3 mask becomes the alpha channel of an RGBA PNG.
 The trained Nerfacto outputs, test renders, and exported point cloud are written under each timestep folder in `nerfacto-reconstructions/`.
-The Euler integration uses Nerfacto's `torch` implementation rather than `tcnn`, which avoids an extra `tiny-cuda-nn` build step in the Nerfacto environment.
+The Nerfacto branch is aligned with the reference `nerfstudio_project` workflow:
+it trains from `images/` with `--downscale-factor 1`, and the optional resolution decrease factor is applied later only during `ns-render`.
 After both conda environments exist, `scripts/run_pipeline.py` will automatically hand off step 2 to `dsl-p6-nerfacto` when `reconstruction_method = "nerfacto"`, so the user does not need to switch environments manually between step 1 and step 2.
 
 The automatic handoff only works if both conda environments already exist.
@@ -291,7 +295,7 @@ tail -f logs/dsl-p6-pipeline-<jobid>.out
 - The 3DGS branch depends on the Wheat-3DGS submodule and its compiled CUDA extensions.
 - The Nerfacto branch should be run from the separate `dsl-p6-nerfacto` environment, not from `dsl-p6-pipeline`.
 - The Nerfacto branch depends on `ns-train`, `ns-render`, and `ns-export` being available in that Nerfacto environment.
-- The Nerfacto branch is pinned for Euler through `nerfstudio==1.1.5` and runs with `--pipeline.model.implementation torch` to avoid a separate `tiny-cuda-nn` installation.
+- The Nerfacto branch is pinned for Euler through `nerfstudio==1.1.5`, includes the `tiny-cuda-nn` dependency needed for the reference `tcnn` backend, and follows the reference `nerfstudio_project` training/render workflow.
 - Once both environments are created, `scripts/run_pipeline.py` will automatically use `dsl-p6-pipeline` for SAM3 and 3DGS, and `dsl-p6-nerfacto` for the Nerfacto branch.
 - `scripts/run_pipeline.py` is the right place to keep orchestrating the three stages as they are implemented.
 - Create the conda environment on a GPU-equipped compute node so the PyTorch and CUDA stack resolve against the same module environment you will use in jobs.

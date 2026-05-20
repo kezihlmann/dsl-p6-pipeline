@@ -14,4 +14,6 @@ dependencies:
   - pip
   - pip:
       - av==12.3.0
+      - ninja
+      - git+https://github.com/NVlabs/tiny-cuda-nn/#subdirectory=bindings/torch
       - nerfstudio==1.1.5
