@@ -185,6 +185,28 @@ def write_link_or_copy(source_path: Path, target_path: Path) -> None:
         shutil.copy2(source_path, target_path)
 
 
+def prepare_downscaled_images(dataset_root: Path, factor: int) -> Path:
+    source_dir = dataset_root / "images"
+    target_dir = dataset_root / f"images_{factor}"
+    target_dir.mkdir(parents=True, exist_ok=True)
+
+    for png_path in sorted(source_dir.glob("*.png")):
+        out_png = target_dir / png_path.name
+        if not out_png.exists():
+            image = Image.open(png_path).convert("RGBA")
+            width, height = image.size
+            downscaled = image.resize(
+                (max(1, width // factor), max(1, height // factor)),
+                Image.Resampling.LANCZOS,
+            )
+            downscaled.save(out_png)
+
+        jpg_link = target_dir / f"{png_path.stem}.jpg"
+        write_link_or_copy(out_png, jpg_link)
+
+    return target_dir
+
+
 def prepare_rgba_dataset(frame_root: Path, overwrite: bool) -> Path:
     ensure_sparse_zero(frame_root)
 
@@ -270,6 +292,47 @@ def find_latest_config(experiment_root: Path) -> Path:
     return config_paths[-1]
 
 
+def write_render_config_override(config_path: Path, images_path_name: str) -> Path:
+    override_path = config_path.with_name(f"{config_path.stem}_render_override.yml")
+    lines = config_path.read_text(encoding="utf-8").splitlines()
+    output_lines: list[str] = []
+    image_replaced = False
+    downscale_replaced = False
+    skip_path_item = False
+
+    for line in lines:
+        stripped = line.strip()
+
+        if skip_path_item:
+            if stripped.startswith("- "):
+                continue
+            skip_path_item = False
+
+        if stripped.startswith("images_path:"):
+            indent = line[: len(line) - len(line.lstrip())]
+            output_lines.append(f"{indent}images_path: !!python/object/apply:pathlib.PosixPath")
+            output_lines.append(f"{indent}- {images_path_name}")
+            image_replaced = True
+            skip_path_item = True
+            continue
+
+        if stripped.startswith("downscale_factor:") and not downscale_replaced:
+            indent = line[: len(line) - len(line.lstrip())]
+            output_lines.append(f"{indent}downscale_factor: 1")
+            downscale_replaced = True
+            continue
+
+        output_lines.append(line)
+
+    if not image_replaced:
+        raise ValueError(f"Failed to patch images_path in {config_path}")
+    if not downscale_replaced:
+        raise ValueError(f"Failed to patch downscale_factor in {config_path}")
+
+    override_path.write_text("\n".join(output_lines) + "\n", encoding="utf-8")
+    return override_path
+
+
 def build_experiment_name(frame_root: Path, settings: Settings) -> str:
     resolution_label = "fullres" if settings.resolution_decrease_factor == 1 else f"down{settings.resolution_decrease_factor}"
     return f"nerfacto_rgba_{frame_root.name}_{resolution_label}_{settings.num_iterations}"
@@ -303,7 +366,8 @@ def run(settings_path: Path, dry_run: bool, overwrite: bool) -> int:
         resolution_mode_message = (
             "Following the reference nerfstudio_project workflow: "
             "Nerfacto trains from images/ with --downscale-factor 1. "
-            f"resolution_decrease_factor={settings.resolution_decrease_factor} is only applied later during rendering."
+            f"resolution_decrease_factor={settings.resolution_decrease_factor} is only applied later during rendering"
+            " via a prepared downscaled RGBA image folder."
         )
         recon_root = frame_root / "nerfacto-reconstructions"
         experiment_name = build_experiment_name(frame_root, settings)
@@ -357,11 +421,19 @@ def run(settings_path: Path, dry_run: bool, overwrite: bool) -> int:
         run_command(train_command, repo_root, env, dry_run)
 
         config_path = experiment_root / "_dry_run_config.yml" if dry_run else find_latest_config(experiment_root)
+        render_config_path = config_path
+        if settings.resolution_decrease_factor > 1:
+            prepare_downscaled_images(dataset_root, settings.resolution_decrease_factor)
+            if not dry_run:
+                render_config_path = write_render_config_override(
+                    config_path=config_path,
+                    images_path_name=f"images_{settings.resolution_decrease_factor}",
+                )
         render_command = [
             "ns-render",
             "dataset",
             "--load-config",
-            str(config_path),
+            str(render_config_path),
             "--output-path",
             str(render_root),
             "--split",
@@ -374,9 +446,9 @@ def run(settings_path: Path, dry_run: bool, overwrite: bool) -> int:
             "png",
             "--eval-num-rays-per-chunk",
             "4096",
+            "--downscale-factor",
+            "1",
         ]
-        if settings.resolution_decrease_factor > 1:
-            render_command.extend(["--downscale-factor", str(settings.resolution_decrease_factor)])
         export_command = [
             "ns-export",
             "pointcloud",
