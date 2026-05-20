@@ -58,5 +58,5 @@ Use the short Euler guide in [SETUP_EULER.md](SETUP_EULER.md).
 ## Notes
 
 - `3dgs` depends on `external/Wheat-3DGS`.
-- `nerfacto` follows the reference `nerfstudio_project` training and rendering workflow, but that reference project is not a runtime dependency of this repo.
+- `nerfacto` uses the repository's built-in training and rendering workflow
 - Large local experiment outputs under `data/` are ignored by Git.

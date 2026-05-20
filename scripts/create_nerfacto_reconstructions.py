@@ -340,14 +340,14 @@ def run(settings_path: Path, dry_run: bool, overwrite: bool) -> int:
     env = build_environment()
     selected_timesteps = choose_timesteps(find_available_timesteps(input_root), settings)
 
-    print("Using Nerfacto RGBA reconstruction based on the reference nerfstudio_project workflow.")
+    print("Using the built-in Nerfacto RGBA reconstruction workflow.")
 
     for _, frame_root in selected_timesteps:
         dataset_root = prepare_rgba_dataset(frame_root, overwrite=overwrite)
         images_path_name = "images"
         train_downscale_factor = 1
         resolution_mode_message = (
-            "Following the reference nerfstudio_project workflow: "
+            "Using the repository Nerfacto workflow: "
             "Nerfacto trains from images/ with --downscale-factor 1. "
             f"resolution_decrease_factor={settings.resolution_decrease_factor} is only applied later during rendering"
             " via a prepared downscaled RGBA image folder."
