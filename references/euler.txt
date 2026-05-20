@@ -1,1 +1,0 @@
-https://docs.hpc.ethz.ch/tutorials/first-job/#quick-reference
