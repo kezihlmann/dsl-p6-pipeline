@@ -328,13 +328,22 @@ def patch_wheat_3dgs(repo_dir: Path) -> list[str]:
 
 
 def ensure_sparse_zero(frame_root: Path) -> None:
-    sparse_zero = frame_root / "sparse" / "0"
-    if not sparse_zero.exists():
+    sparse_root = frame_root / "sparse"
+    sparse_zero = sparse_root / "0"
+    if sparse_zero.exists():
+        return
+    if not sparse_root.exists():
         raise FileNotFoundError(
             f"Missing COLMAP sparse model for {frame_root.name} at {frame_root}. "
             "Step 2 requires a provided sparse model before 3DGS reconstruction can start. "
             "Expected either 'sparse/0' or a 'sparse' folder that can be normalized into 'sparse/0'."
         )
+
+    sparse_zero.mkdir(exist_ok=True)
+    for path in list(sparse_root.iterdir()):
+        if path.name == "0":
+            continue
+        shutil.move(str(path), str(sparse_zero / path.name))
 
 
 def normalize_masks_binary_active(frame_root: Path) -> Path:
@@ -380,24 +389,6 @@ def normalize_masks_binary_active(frame_root: Path) -> Path:
 def ensure_prepared_timestep(frame_root: Path) -> Path:
     ensure_sparse_zero(frame_root)
     return normalize_masks_binary_active(frame_root)
-
-
-def selected_timesteps_need_sparse_normalization(frame_roots: list[Path]) -> bool:
-    return any((frame_root / "sparse").exists() and not (frame_root / "sparse" / "0").exists() for frame_root in frame_roots)
-
-
-def run_sparse_normalization(settings_path: Path, repo_root: Path, dry_run: bool) -> None:
-    command = [
-        sys.executable,
-        str(Path(__file__).resolve().parent / "create_colmap.py"),
-        "--settings",
-        str(settings_path),
-    ]
-    print("Some selected timesteps already have a sparse model but are missing sparse/0. Running sparse normalization first.")
-    print(f"Running: {' '.join(command)}")
-    if dry_run:
-        return
-    subprocess.run(command, cwd=repo_root, check=True)
 
 
 def resolution_label(resolution_decrease_factor: int) -> str:
@@ -491,10 +482,6 @@ def run(settings_path: Path, repo_dir: Path, dry_run: bool, overwrite: bool) -> 
     available_timesteps = find_available_timesteps(input_root)
     selected_timesteps = choose_timesteps(available_timesteps, settings)
     patched_files = patch_wheat_3dgs(repo_dir)
-
-    selected_frame_roots = [frame_root for _, frame_root in selected_timesteps]
-    if selected_timesteps_need_sparse_normalization(selected_frame_roots):
-        run_sparse_normalization(settings_path=settings_path, repo_root=repo_root, dry_run=dry_run)
 
     print(f"Wheat-3DGS repo: {repo_dir}")
     if patched_files:
