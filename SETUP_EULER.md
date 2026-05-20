@@ -138,17 +138,31 @@ pytorch::pytorch=2.5.1
 pytorch::torchvision=0.20.1
 pytorch::torchaudio=2.5.1
 pytorch::pytorch-cuda=12.1
-tcnn via tiny-cuda-nn
+setuptools<81
+wheel
 nerfstudio==1.1.5
 av==12.3.0
 ```
 
 If `dsl-p6-nerfacto` already exists from an older checkout, recreate it or update it so the reference Nerfacto backend dependencies are installed too.
 
+Then install `tiny-cuda-nn` inside that environment on a GPU node:
+
+```bash
+cd /cluster/project/cropsci/kzihlmann/dsl-p6-pipeline
+module purge
+module load stack/2024-05 gcc/13.2.0 cuda/12.2.1 eth_proxy
+eval "$(conda shell.bash hook)"
+conda activate dsl-p6-nerfacto
+python scripts/install_tinycudann_euler.py
+```
+
+This helper detects the visible GPU architecture, sets `TCNN_CUDA_ARCHITECTURES`, and installs the `tiny-cuda-nn` PyTorch binding with the working Euler flags.
+
 Verify the Nerfacto environment with:
 
 ```bash
-python -c "import torch, torchvision; print(torch.__version__); print(torchvision.__version__); print(torch.version.cuda); print(torch.cuda.is_available())"
+python -c "import tinycudann, torch, torchvision; print(torch.__version__); print(torchvision.__version__); print(torch.version.cuda); print(torch.cuda.is_available())"
 which ns-train
 ns-train --help | head
 ```
@@ -295,7 +309,7 @@ tail -f logs/dsl-p6-pipeline-<jobid>.out
 - The 3DGS branch depends on the Wheat-3DGS submodule and its compiled CUDA extensions.
 - The Nerfacto branch should be run from the separate `dsl-p6-nerfacto` environment, not from `dsl-p6-pipeline`.
 - The Nerfacto branch depends on `ns-train`, `ns-render`, and `ns-export` being available in that Nerfacto environment.
-- The Nerfacto branch is pinned for Euler through `nerfstudio==1.1.5`, includes the `tiny-cuda-nn` dependency needed for the reference `tcnn` backend, and follows the reference `nerfstudio_project` training/render workflow.
+- The Nerfacto branch is pinned for Euler through `nerfstudio==1.1.5`, follows the reference `nerfstudio_project` training/render workflow, and expects `tiny-cuda-nn` to be installed afterward with `python scripts/install_tinycudann_euler.py` on a GPU node.
 - Once both environments are created, `scripts/run_pipeline.py` will automatically use `dsl-p6-pipeline` for SAM3 and 3DGS, and `dsl-p6-nerfacto` for the Nerfacto branch.
 - `scripts/run_pipeline.py` is the right place to keep orchestrating the three stages as they are implemented.
 - Create the conda environment on a GPU-equipped compute node so the PyTorch and CUDA stack resolve against the same module environment you will use in jobs.
@@ -315,6 +329,9 @@ eval "$(conda shell.bash hook)"
 conda env create -f environment-euler.yml
 conda activate dsl-p6-pipeline
 conda env create -f environment-euler-nerfacto.yml
+conda activate dsl-p6-nerfacto
+python scripts/install_tinycudann_euler.py
+conda activate dsl-p6-pipeline
 hf auth login
 git submodule update --init --recursive
 python -c "import torch; print(torch.__version__); print(torch.version.cuda); print(torch.cuda.is_available())"
@@ -341,7 +358,8 @@ module load stack/2024-05 gcc/13.2.0 cuda/12.2.1 eth_proxy
 eval "$(conda shell.bash hook)"
 conda env create -f environment-euler-nerfacto.yml
 conda activate dsl-p6-nerfacto
-python -c "import torch, torchvision; print(torch.__version__); print(torchvision.__version__); print(torch.version.cuda); print(torch.cuda.is_available())"
+python scripts/install_tinycudann_euler.py
+python -c "import tinycudann, torch, torchvision; print(torch.__version__); print(torchvision.__version__); print(torch.version.cuda); print(torch.cuda.is_available())"
 which ns-train
 ns-train --help | head
 ```

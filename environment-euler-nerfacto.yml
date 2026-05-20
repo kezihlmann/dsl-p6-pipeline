@@ -7,6 +7,8 @@ dependencies:
   - python=3.11
   - mkl<2024.1
   - intel-openmp<2024.1
+  - setuptools<81
+  - wheel
   - pytorch::pytorch=2.5.1
   - pytorch::torchvision=0.20.1
   - pytorch::torchaudio=2.5.1
@@ -15,5 +17,4 @@ dependencies:
   - pip:
       - av==12.3.0
       - ninja
-      - git+https://github.com/NVlabs/tiny-cuda-nn/#subdirectory=bindings/torch
       - nerfstudio==1.1.5
