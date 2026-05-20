@@ -69,7 +69,7 @@ conda env create -f environment-euler.yml
 conda activate dsl-p6-pipeline
 ```
 
-The environment file is pinned to `pytorch=2.5.1`, `torchvision=0.20.1`, `torchaudio=2.5.1`, and `pytorch-cuda=12.1`.
+The environment file is pinned to `pytorch::pytorch=2.5.1`, `pytorch::torchvision=0.20.1`, `pytorch::torchaudio=2.5.1`, and `pytorch::pytorch-cuda=12.1`.
 That is intentional: the PyTorch conda packages are published for CUDA 12.1, while your Euler module stack uses `cuda/12.2.1`.
 That combination is normally the practical match on clusters because the loaded CUDA module provides the runtime stack and the 12.1 PyTorch build is compatible with the newer 12.2 driver/runtime environment.
 The conda file intentionally avoids `conda-forge` because the broader mixed-channel solve was getting killed on the Euler login node with exit code `137` during metadata resolution.
@@ -100,6 +100,7 @@ conda list | egrep "pytorch|torchvision|torchaudio|libtorch"
 You want `torch.version.cuda` to report `12.1` and `torch.cuda.is_available()` to be `True`.
 If `torch.version.cuda` is `None`, or if `pytorch` / `libtorch` show `cpu_openblas`, the environment is in a broken mixed CPU/CUDA state and the 3DGS CUDA extensions will not build correctly.
 In that case, remove and recreate the environment from `environment-euler.yml` before continuing.
+The environment files use explicit `pytorch::...` package selectors because Conda can otherwise mix in the CPU `defaults` build of `pytorch` while still installing CUDA `torchvision` and `torchaudio`, which leaves the environment broken.
 
 If the environment solve still gets killed on the login node, request a GPU shell first and run the same create command there:
 
@@ -132,10 +133,10 @@ This environment pins:
 python=3.11
 mkl<2024.1
 intel-openmp<2024.1
-pytorch=2.5.1
-torchvision=0.20.1
-torchaudio=2.5.1
-pytorch-cuda=12.1
+pytorch::pytorch=2.5.1
+pytorch::torchvision=0.20.1
+pytorch::torchaudio=2.5.1
+pytorch::pytorch-cuda=12.1
 nerfstudio==1.1.5
 av==12.3.0
 ```

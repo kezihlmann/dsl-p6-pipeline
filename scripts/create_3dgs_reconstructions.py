@@ -283,6 +283,33 @@ def patch_train_vanilla_3dgs(repo_dir: Path) -> bool:
     return False
 
 
+def patch_extension_setup_files(repo_dir: Path) -> list[str]:
+    changed: list[str] = []
+    targets = [
+        repo_dir / "submodules" / "simple-knn" / "setup.py",
+        repo_dir / "submodules" / "diff-gaussian-rasterization" / "setup.py",
+        repo_dir / "submodules" / "flashsplat-rasterization" / "setup.py",
+    ]
+
+    for path in targets:
+        text = path.read_text(encoding="utf-8")
+        original = text
+        if '"-allow-unsupported-compiler"' not in text:
+            text = text.replace(
+                'extra_compile_args={"nvcc": [',
+                'extra_compile_args={"nvcc": ["-allow-unsupported-compiler", ',
+            )
+            text = text.replace(
+                'extra_compile_args={"nvcc": [], "cxx": cxx_compiler_flags}',
+                'extra_compile_args={"nvcc": ["-allow-unsupported-compiler"], "cxx": cxx_compiler_flags}',
+            )
+        if text != original:
+            path.write_text(text, encoding="utf-8")
+            changed.append(str(path.relative_to(repo_dir)))
+
+    return changed
+
+
 def patch_wheat_3dgs(repo_dir: Path) -> list[str]:
     if not repo_dir.exists():
         raise FileNotFoundError(f"Wheat-3DGS repository not found: {repo_dir}")
@@ -296,6 +323,7 @@ def patch_wheat_3dgs(repo_dir: Path) -> list[str]:
         changed.append("scene/cameras.py")
     if patch_train_vanilla_3dgs(repo_dir):
         changed.append("train_vanilla_3dgs.py")
+    changed.extend(patch_extension_setup_files(repo_dir))
     return changed
 
 

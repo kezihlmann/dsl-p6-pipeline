@@ -11,10 +11,10 @@ dependencies:
   - pillow
   - scipy
   - shapely
-  - pytorch=2.5.1
-  - torchvision=0.20.1
-  - torchaudio=2.5.1
-  - pytorch-cuda=12.1
+  - pytorch::pytorch=2.5.1
+  - pytorch::torchvision=0.20.1
+  - pytorch::torchaudio=2.5.1
+  - pytorch::pytorch-cuda=12.1
   - pip
   - pip:
       - transformers
