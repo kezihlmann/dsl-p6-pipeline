@@ -292,40 +292,23 @@ def find_latest_config(experiment_root: Path) -> Path:
     return config_paths[-1]
 
 
-def write_render_config_override(config_path: Path, images_path_name: str) -> Path:
+def write_render_config_override(config_path: Path, downscale_factor: int) -> Path:
     override_path = config_path.with_name(f"{config_path.stem}_render_override.yml")
     lines = config_path.read_text(encoding="utf-8").splitlines()
     output_lines: list[str] = []
-    image_replaced = False
     downscale_replaced = False
-    skip_path_item = False
 
     for line in lines:
         stripped = line.strip()
 
-        if skip_path_item:
-            if stripped.startswith("- "):
-                continue
-            skip_path_item = False
-
-        if stripped.startswith("images_path:"):
-            indent = line[: len(line) - len(line.lstrip())]
-            output_lines.append(f"{indent}images_path: !!python/object/apply:pathlib.PosixPath")
-            output_lines.append(f"{indent}- {images_path_name}")
-            image_replaced = True
-            skip_path_item = True
-            continue
-
         if stripped.startswith("downscale_factor:") and not downscale_replaced:
             indent = line[: len(line) - len(line.lstrip())]
-            output_lines.append(f"{indent}downscale_factor: 1")
+            output_lines.append(f"{indent}downscale_factor: {downscale_factor}")
             downscale_replaced = True
             continue
 
         output_lines.append(line)
 
-    if not image_replaced:
-        raise ValueError(f"Failed to patch images_path in {config_path}")
     if not downscale_replaced:
         raise ValueError(f"Failed to patch downscale_factor in {config_path}")
 
@@ -427,7 +410,7 @@ def run(settings_path: Path, dry_run: bool, overwrite: bool) -> int:
             if not dry_run:
                 render_config_path = write_render_config_override(
                     config_path=config_path,
-                    images_path_name=f"images_{settings.resolution_decrease_factor}",
+                    downscale_factor=settings.resolution_decrease_factor,
                 )
         render_command = [
             "ns-render",
@@ -446,8 +429,6 @@ def run(settings_path: Path, dry_run: bool, overwrite: bool) -> int:
             "png",
             "--eval-num-rays-per-chunk",
             "4096",
-            "--downscale-factor",
-            "1",
         ]
         export_command = [
             "ns-export",
