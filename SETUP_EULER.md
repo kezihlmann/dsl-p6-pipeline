@@ -9,6 +9,7 @@ This repository now has three implemented stages:
 - `scripts/create_colmap.py`: normalizes a provided COLMAP sparse model into the Wheat-3DGS-ready `sparse/0` layout
 - `scripts/create_3dgs_reconstructions.py`: patches Wheat-3DGS for external alpha masks and runs train/render
 - `scripts/create_nerfacto_reconstructions.py`: prepares RGBA Nerfstudio datasets from SAM3 masks and runs train/render/export
+- `scripts/build_wheat_3dgs_extensions.py`: patches and builds the Wheat-3DGS CUDA extensions from the parent repo
 - `scripts/create_video.py`: TODO placeholder
 - `scripts/run_pipeline.py`: runs enabled steps from `settings_pipeline.txt`
 - `submit_pipeline.slurm`: Slurm entrypoint for Euler
@@ -221,27 +222,13 @@ TORCH_LIB=$(python -c "import os, torch; print(os.path.join(os.path.dirname(torc
 export LD_LIBRARY_PATH="$TORCH_LIB:$LD_LIBRARY_PATH"
 
 python -c "import torch; print(torch.__version__); print(torch.version.cuda); print(torch.cuda.is_available())"
-
-cd external/Wheat-3DGS/submodules/simple-knn
-python setup.py build_ext --inplace
-
-cd ../diff-gaussian-rasterization
-python setup.py build_ext --inplace
-
-cd ../flashsplat-rasterization
-python setup.py build_ext --inplace
-
-cd /cluster/project/cropsci/kzihlmann/dsl-p6-pipeline
-python -c "from simple_knn._C import distCUDA2; print('simple-knn ok')"
+python scripts/build_wheat_3dgs_extensions.py
 ```
 
-Use `python setup.py build_ext --inplace` here instead of `pip install -e ...`.
-On Euler, the editable `pip` path can drop CUDA detection during build metadata generation, while the direct `setup.py` path is reliable.
+Use `python scripts/build_wheat_3dgs_extensions.py` here instead of `pip install -e ...`.
+On Euler, the editable `pip` path can drop CUDA detection during build metadata generation, while the helper script patches the submodule `setup.py` files and builds them directly with `setup.py`.
 
-On Euler's `stack/2024-05 gcc/13.2.0 cuda/12.2.1` combination, CUDA may reject the host compiler version while building the last two extensions.
-If that happens, patch both extension `setup.py` files to add `-allow-unsupported-compiler` to the `nvcc` compile args, remove their `build/` directories, and rerun those two `python setup.py build_ext --inplace` commands.
-
-Any time you recreate or substantially change the `dsl-p6-pipeline` PyTorch stack, rebuild these three 3DGS extensions again.
+Any time you recreate or substantially change the `dsl-p6-pipeline` PyTorch stack, rerun `python scripts/build_wheat_3dgs_extensions.py`.
 
 ## 6. Run the implemented stages interactively first
 
@@ -334,11 +321,7 @@ export PATH="$CUDA_HOME/bin:$PATH"
 export LD_LIBRARY_PATH="$CUDA_HOME/lib64:$LD_LIBRARY_PATH"
 TORCH_LIB=$(python -c "import os, torch; print(os.path.join(os.path.dirname(torch.__file__), 'lib'))")
 export LD_LIBRARY_PATH="$TORCH_LIB:$LD_LIBRARY_PATH"
-cd external/Wheat-3DGS/submodules/simple-knn && python setup.py build_ext --inplace
-cd ../diff-gaussian-rasterization && python setup.py build_ext --inplace
-cd ../flashsplat-rasterization && python setup.py build_ext --inplace
-cd /cluster/project/cropsci/kzihlmann/dsl-p6-pipeline
-python -c "from simple_knn._C import distCUDA2; print('simple-knn ok')"
+python scripts/build_wheat_3dgs_extensions.py
 python scripts/run_pipeline.py --settings settings_pipeline.txt
 sbatch submit_pipeline.slurm
 squeue -u $USER
