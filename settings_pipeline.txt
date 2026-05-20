@@ -1,8 +1,7 @@
 # -----------------------------------------------------
-# Pipeline settings - this pipeline is divided into 3 steps:
+# Pipeline settings - this pipeline is divided into 2 steps:
 # step 1: sam-3 masks
 # step 2: 3d reconstruction
-# step 3: video generation
 # -----------------------------------------------------
 
 
@@ -15,7 +14,6 @@ last_timestep = 2004
 num_timesteps = 1
 step_1 = False
 step_2 = True
-step_3 = False
 
 # -----------------------------------------------------
 # STEP 1:  SAM-3 mask generation
@@ -30,7 +28,3 @@ sam_3_prompt = "plant"
 reconstruction_method = "3dgs"
 resolution_decrease_factor = 4
 num_iterations = 4000
-
-# -----------------------------------------------------
-# STEP 3: Video generation
-# -----------------------------------------------------

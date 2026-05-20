@@ -11,7 +11,6 @@ from pathlib import Path
 
 SCRIPT_BY_STEP = {
     "step_1": "create_sam3_masks.py",
-    "step_3": "create_video.py",
 }
 
 STEP_2_SCRIPT_BY_METHOD = {
@@ -84,7 +83,7 @@ def build_command_for_step(
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Run enabled pipeline stages from settings_pipeline.txt.")
+    parser = argparse.ArgumentParser(description="Run enabled pipeline steps from settings_pipeline.txt.")
     parser.add_argument(
         "--settings",
         type=Path,
@@ -98,7 +97,7 @@ def main() -> int:
     scripts_dir = Path(__file__).resolve().parent
     settings = parse_settings(settings_path)
 
-    for step_name in ("step_1", "step_2", "step_3"):
+    for step_name in ("step_1", "step_2"):
         if not bool(settings.get(step_name, False)):
             print(f"Skipping {step_name}: disabled in settings.")
             continue

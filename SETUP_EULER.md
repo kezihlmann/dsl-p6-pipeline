@@ -3,14 +3,13 @@
 This repository uses `external/Wheat-3DGS` as the single official 3DGS dependency.
 There is no separate `3dgs_project` runtime dependency in this repo anymore.
 
-This repository now has three implemented stages:
+This repository now has two pipeline steps:
 
 - `scripts/create_sam3_masks.py`: implemented from the notebook template
 - `scripts/create_colmap.py`: normalizes a provided COLMAP sparse model into the Wheat-3DGS-ready `sparse/0` layout
 - `scripts/create_3dgs_reconstructions.py`: patches Wheat-3DGS for external alpha masks and runs train/render
 - `scripts/create_nerfacto_reconstructions.py`: prepares RGBA Nerfstudio datasets from SAM3 masks and runs train/render/export
 - `scripts/build_wheat_3dgs_extensions.py`: patches and builds the Wheat-3DGS CUDA extensions from the parent repo
-- `scripts/create_video.py`: TODO placeholder
 - `scripts/run_pipeline.py`: runs enabled steps from `settings_pipeline.txt`
 - `submit_pipeline.slurm`: Slurm entrypoint for Euler
 - `environment-euler.yml`: conda environment for SAM3 and 3DGS on Euler
@@ -311,7 +310,7 @@ tail -f logs/dsl-p6-pipeline-<jobid>.out
 - The Nerfacto branch depends on `ns-train`, `ns-render`, and `ns-export` being available in that Nerfacto environment.
 - The Nerfacto branch is pinned for Euler through `nerfstudio==1.1.5`, follows the reference `nerfstudio_project` training/render workflow, and expects `tiny-cuda-nn` to be installed afterward with `python scripts/install_tinycudann_euler.py` on a GPU node.
 - Once both environments are created, `scripts/run_pipeline.py` will automatically use `dsl-p6-pipeline` for SAM3 and 3DGS, and `dsl-p6-nerfacto` for the Nerfacto branch.
-- `scripts/run_pipeline.py` is the right place to keep orchestrating the three stages as they are implemented.
+- `scripts/run_pipeline.py` is the right place to keep orchestrating the two implemented pipeline steps.
 - Create the conda environment on a GPU-equipped compute node so the PyTorch and CUDA stack resolve against the same module environment you will use in jobs.
 - Use `squeue -u $USER` to monitor submitted jobs.
 - There is no separate `requirements-euler.txt` anymore; the conda environment files in `environment-euler.yml` and `environment-euler-nerfacto.yml` are the source of truth for Euler.
