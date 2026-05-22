@@ -12,6 +12,16 @@ This repository runs a two-step plant reconstruction pipeline:
 1. `step_1`: SAM3 mask generation
 2. `step_2`: 3D reconstruction with either `3dgs` or `nerfacto`
 
+```mermaid
+flowchart LR
+    A[Input images] --> B[SAM-3]
+    B --> C[Binary masks]
+    C --> D[3dgs]
+    C --> E[nerfacto]
+    D --> F[3D reconstruction]
+    E --> G[3D reconstruction]
+```
+
 The tested target is Euler. Local Linux use is possible with the same two-environment structure, but Euler is the documented path.
 
 For local Linux use, mirror the same split:
