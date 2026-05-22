@@ -1,5 +1,12 @@
 # DSL P6 Pipeline
 
+Clone the repository with submodules:
+```bash
+git clone https://github.com/kezihlmann/dsl-p6-pipeline.git --recursive
+# or, if you already cloned without --recursive:
+# git submodule update --init --recursive
+```
+
 This repository runs a two-step plant reconstruction pipeline:
 
 1. `step_1`: SAM3 mask generation
