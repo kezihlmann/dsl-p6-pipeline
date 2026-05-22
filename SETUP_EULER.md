@@ -22,9 +22,11 @@ srun --gpus=1 --cpus-per-task=4 --mem-per-cpu=8G --time=08:00:00 --pty bash
 
 ```bash
 module purge
-module load stack/2024-05 gcc/13.2.0 cuda/12.2.1 eth_proxy
+module load stack/2024-05 gcc/12.2.0 cuda/12.2.1 eth_proxy
 eval "$(conda shell.bash hook)"
 ```
+
+Use a GCC 12.x module for the native CUDA builds in step 5. GCC 13 causes `nvcc` failures on Euler for both `tiny-cuda-nn` and the Wheat-3DGS extensions.
 
 ## 4. Create the two conda environments
 
@@ -49,6 +51,8 @@ Build the Wheat-3DGS CUDA extensions:
 conda activate dsl-p6-pipeline
 python scripts/build_wheat_3dgs_extensions.py
 ```
+
+If your GCC 12 module has a different version name on Euler, load that module instead before running the helpers. The scripts now stop early with a clear error if `CC` and `CXX` resolve to GCC newer than 12.
 
 ## 6. Authenticate Hugging Face once
 

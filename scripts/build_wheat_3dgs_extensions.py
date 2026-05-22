@@ -7,6 +7,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+from cuda_host_compiler import configure_cuda_host_compiler, describe_compiler_pair
+
 
 def patch_extension_setup_files(repo_dir: Path) -> list[str]:
     changed: list[str] = []
@@ -48,6 +50,7 @@ def build_environment(repo_dir: Path) -> dict[str, str]:
     env["CUDACXX"] = str(cuda_home / "bin" / "nvcc")
     env["FORCE_CUDA"] = "1"
     env["PATH"] = os.pathsep.join([str(cuda_home / "bin"), env.get("PATH", "")]).rstrip(os.pathsep)
+    cc, cxx = configure_cuda_host_compiler(env)
 
     import torch
 
@@ -74,6 +77,7 @@ def build_environment(repo_dir: Path) -> dict[str, str]:
     if existing_pythonpath:
         python_path_entries.append(existing_pythonpath)
     env["PYTHONPATH"] = os.pathsep.join(python_path_entries)
+    env["DSL_CUDA_HOST_COMPILER"] = describe_compiler_pair(cc, cxx)
     return env
 
 
@@ -123,6 +127,7 @@ def main() -> int:
 
     env = build_environment(repo_dir)
     print(f"Using CUDA_HOME={env['CUDA_HOME']}")
+    print(f"Using host compiler {env['DSL_CUDA_HOST_COMPILER']}")
 
     build_extension(repo_dir / "submodules" / "simple-knn", env=env, clean=not args.no_clean)
     build_extension(repo_dir / "submodules" / "diff-gaussian-rasterization", env=env, clean=not args.no_clean)

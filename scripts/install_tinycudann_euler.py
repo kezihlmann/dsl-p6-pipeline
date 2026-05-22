@@ -5,6 +5,8 @@ import shutil
 import subprocess
 import sys
 
+from cuda_host_compiler import configure_cuda_host_compiler, describe_compiler_pair
+
 
 def fail(message: str) -> int:
     print(message, file=sys.stderr)
@@ -43,9 +45,11 @@ def main() -> int:
             return fail("nvcc disappeared from PATH.")
         env["CUDA_HOME"] = os.path.dirname(os.path.dirname(os.path.realpath(nvcc_path)))
     env.setdefault("CUDACXX", os.path.join(env["CUDA_HOME"], "bin", "nvcc"))
+    cc, cxx = configure_cuda_host_compiler(env)
 
     print(f"Detected CUDA architecture: {env['TCNN_CUDA_ARCHITECTURES']}")
     print(f"Using CUDA_HOME={env['CUDA_HOME']}")
+    print(f"Using host compiler {describe_compiler_pair(cc, cxx)}")
     print(f"Using torch {torch.__version__} with CUDA {torch.version.cuda}")
 
     run([sys.executable, "-m", "pip", "install", "--no-build-isolation", "--force-reinstall",

@@ -13,7 +13,7 @@ REPO_ROOT=/cluster/project/cropsci/kzihlmann/dsl-p6-pipeline
 CONDA_ENV_NAME=dsl-p6-pipeline
 
 module purge
-module load stack/2024-05 gcc/13.2.0 cuda/12.2.1 eth_proxy
+module load stack/2024-05 gcc/12.2.0 cuda/12.2.1 eth_proxy
 
 if command -v conda >/dev/null 2>&1; then
 	eval "$(conda shell.bash hook)"
