@@ -3,6 +3,8 @@
 # Format: x,y,z in the same coordinate system as the PLY files.
 # Load the ply-file in https://superspl.at/editor to get the coordinates manually.
 
-start=-0.155,0.017,-0.534
-# end=-0.156,-0.011,-0.493
-end=-0.157,-0.075, -0.413
+# start=-0.155,0.017,-0.534
+# # end=-0.156,-0.011,-0.493
+# end=-0.157,-0.075, -0.413
+start=0.0418, 0.0813, -0.9094
+end=0.0398, 0.0758, -0.7871

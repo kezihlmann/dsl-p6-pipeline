@@ -11,6 +11,7 @@ Two renderer variants are included:
 
 - `animate_growth_pointclouds.py`: main renderer with CPU/CUDA support, orbit camera controls, optional point-preview mode, and MP4 export.
 - `animate_growth_pointclouds_gpu.py`: GPU-focused variant of the same growth-video workflow.
+- `download_nerfacto_pointclouds.py`: checks Euler Nerfacto reconstructions and downloads finished `point_cloud.ply` files into `data/point_cloud_XXXX.ply`.
 - `stem_axis.txt`: defines a stable stem axis used to align the timesteps consistently before rendering.
 - `data/`: example input PLY files for testing the renderer setup.
 
@@ -29,6 +30,29 @@ experiments/video_generation/
 ```
 
 The timestep label is extracted from the trailing digits in each filename.
+
+## Download Point Clouds From Euler
+
+Run from the repository root:
+
+```bash
+python experiments/video_generation/download_nerfacto_pointclouds.py
+```
+
+By default the script:
+
+- checks timesteps `0000, 0060, ..., 3300`
+- looks for Nerfacto outputs under `/cluster/project/cropsci/kzihlmann/dsl-p6-pipeline/data/maize_4`
+- expects experiment folders named like `nerfacto_rgba_timestep_0000_down4_30000`
+- expects the exported point cloud at `pointcloud_10000/point_cloud.ply`
+- downloads each finished result to `experiments/video_generation/data/point_cloud_XXXX.ply`
+
+Useful options:
+
+- `--remote kzihlman@eu-login-16.euler.ethz.ch`
+- `--num-iterations 30000`
+- `--pointcloud-iteration 10000`
+- `--overwrite`
 
 ## Render a Growth Video
 

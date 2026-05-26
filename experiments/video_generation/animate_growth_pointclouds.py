@@ -33,6 +33,7 @@ DEFAULT_ELEVATION = 18.0
 DEFAULT_ROLL = 0.0
 DEFAULT_PADDING = 0.18
 DEFAULT_VERTICAL_FOV = 35.0
+DEFAULT_FRAME_CENTER_Y_FRACTION = 0.5
 DEFAULT_MIN_OPACITY = 0.02
 DEFAULT_SIGMA_CUTOFF = 2.6
 DEFAULT_SPLAT_SCALE = 1.0
@@ -53,6 +54,24 @@ class LoadedGaussianCloud:
     stem_axis: tuple[np.ndarray, np.ndarray] | None
 
 
+def translated_cloud(cloud: LoadedGaussianCloud, translation: np.ndarray) -> LoadedGaussianCloud:
+    updated_axis: tuple[np.ndarray, np.ndarray] | None = None
+    if cloud.stem_axis is not None:
+        updated_axis = (
+            cloud.stem_axis[0] + translation,
+            cloud.stem_axis[1] + translation,
+        )
+    return LoadedGaussianCloud(
+        path=cloud.path,
+        means=cloud.means + translation,
+        colors=cloud.colors,
+        opacities=cloud.opacities,
+        covariances=cloud.covariances,
+        label=cloud.label,
+        stem_axis=updated_axis,
+    )
+
+
 @dataclass(frozen=True)
 class CameraPose:
     eye: np.ndarray
@@ -63,6 +82,8 @@ class CameraPose:
 class PLYHeader:
     text: str
     data_offset: int
+    vertex_count: int
+    vertex_dtype: np.dtype
 
 
 @dataclass(frozen=True)
@@ -160,6 +181,15 @@ def parse_args() -> argparse.Namespace:
         type=float,
         default=DEFAULT_PADDING,
         help=f"Padding around the global scene box. Default: {DEFAULT_PADDING}",
+    )
+    parser.add_argument(
+        "--frame-center-y-fraction",
+        type=float,
+        default=DEFAULT_FRAME_CENTER_Y_FRACTION,
+        help=(
+            "Vertical image center as a fraction of frame height. Larger values move the plant lower "
+            f"in the frame. Default: {DEFAULT_FRAME_CENTER_Y_FRACTION}"
+        ),
     )
     parser.add_argument(
         "--vertical-fov",
@@ -355,7 +385,51 @@ def read_ply_header(path: Path) -> PLYHeader:
 
     data_offset = header_end + len(b"end_header\n")
     header_text = data[:data_offset].decode("ascii", errors="strict")
-    return PLYHeader(text=header_text, data_offset=data_offset)
+    vertex_count: int | None = None
+    vertex_properties: list[tuple[str, str]] = []
+    inside_vertex_element = False
+
+    for line in header_text.splitlines():
+        if line.startswith("element "):
+            parts = line.split()
+            inside_vertex_element = len(parts) >= 3 and parts[1] == "vertex"
+            if inside_vertex_element:
+                vertex_count = int(parts[2])
+            continue
+        if inside_vertex_element and line.startswith("property "):
+            parts = line.split()
+            if len(parts) != 3:
+                raise ValueError(f"Unsupported PLY property definition in {path}: {line}")
+            vertex_properties.append((parts[2], parts[1]))
+
+    if vertex_count is None:
+        raise ValueError(f"Could not find vertex count in: {path}")
+    if not vertex_properties:
+        raise ValueError(f"Could not find vertex properties in: {path}")
+
+    type_map = {
+        "char": "i1",
+        "uchar": "u1",
+        "short": "i2",
+        "ushort": "u2",
+        "int": "i4",
+        "uint": "u4",
+        "float": "f4",
+        "float32": "f4",
+        "double": "f8",
+        "float64": "f8",
+    }
+    try:
+        vertex_dtype = np.dtype([(name, "<" + type_map[prop_type]) for name, prop_type in vertex_properties])
+    except KeyError as exc:
+        raise ValueError(f"Unsupported PLY property type in {path}: {exc}") from exc
+
+    return PLYHeader(
+        text=header_text,
+        data_offset=data_offset,
+        vertex_count=vertex_count,
+        vertex_dtype=vertex_dtype,
+    )
 
 
 def parse_stem_axis_from_header(header_text: str) -> tuple[np.ndarray, np.ndarray] | None:
@@ -383,41 +457,55 @@ def parse_stem_axis_from_header(header_text: str) -> tuple[np.ndarray, np.ndarra
 def read_binary_gaussian_ply(path: Path) -> tuple[np.ndarray, tuple[np.ndarray, np.ndarray] | None]:
     header = read_ply_header(path)
     data = path.read_bytes()
-
-    property_names = [line.split()[-1] for line in header.text.splitlines() if line.startswith("property ")]
-    vertex_line = next((line for line in header.text.splitlines() if line.startswith("element vertex ")), None)
-    if vertex_line is None:
-        raise ValueError(f"Could not find vertex count in: {path}")
-
-    vertex_count = int(vertex_line.split()[-1])
-    dtype = np.dtype([(name, "<f4") for name in property_names])
-    array = np.frombuffer(data[header.data_offset:], dtype=dtype, count=vertex_count)
-    if len(array) != vertex_count:
-        raise ValueError(f"Expected {vertex_count} vertices but read {len(array)} from: {path}")
+    array = np.frombuffer(data[header.data_offset:], dtype=header.vertex_dtype, count=header.vertex_count)
+    if len(array) != header.vertex_count:
+        raise ValueError(f"Expected {header.vertex_count} vertices but read {len(array)} from: {path}")
     return array, parse_stem_axis_from_header(header.text)
 
 
 def load_gaussian_cloud(path: Path, min_opacity: float, splat_scale: float) -> LoadedGaussianCloud:
     vertices, stem_axis = read_binary_gaussian_ply(path)
+    property_names = set(vertices.dtype.names or ())
 
     means = np.column_stack([vertices["x"], vertices["y"], vertices["z"]]).astype(np.float32)
-    colors = sh_dc_to_rgb(
-        np.column_stack([vertices["f_dc_0"], vertices["f_dc_1"], vertices["f_dc_2"]]).astype(np.float32)
-    )
-    opacities = sigmoid(vertices["opacity"].astype(np.float32))
-    scales = np.exp(
-        np.column_stack([vertices["scale_0"], vertices["scale_1"], vertices["scale_2"]]).astype(np.float32)
-    )
-    scales *= max(splat_scale, 1e-6)
-    rotations = quaternion_to_rotation(
-        np.column_stack([vertices["rot_0"], vertices["rot_1"], vertices["rot_2"], vertices["rot_3"]]).astype(np.float32)
-    )
+    gaussian_fields = {
+        "f_dc_0", "f_dc_1", "f_dc_2",
+        "opacity",
+        "scale_0", "scale_1", "scale_2",
+        "rot_0", "rot_1", "rot_2", "rot_3",
+    }
+    is_gaussian_cloud = gaussian_fields.issubset(property_names)
 
-    diagonal = np.zeros((len(vertices), 3, 3), dtype=np.float32)
-    diagonal[:, 0, 0] = scales[:, 0] * scales[:, 0]
-    diagonal[:, 1, 1] = scales[:, 1] * scales[:, 1]
-    diagonal[:, 2, 2] = scales[:, 2] * scales[:, 2]
-    covariances = rotations @ diagonal @ np.transpose(rotations, (0, 2, 1))
+    if is_gaussian_cloud:
+        colors = sh_dc_to_rgb(
+            np.column_stack([vertices["f_dc_0"], vertices["f_dc_1"], vertices["f_dc_2"]]).astype(np.float32)
+        )
+        opacities = sigmoid(vertices["opacity"].astype(np.float32))
+        scales = np.exp(
+            np.column_stack([vertices["scale_0"], vertices["scale_1"], vertices["scale_2"]]).astype(np.float32)
+        )
+        scales *= max(splat_scale, 1e-6)
+        rotations = quaternion_to_rotation(
+            np.column_stack([vertices["rot_0"], vertices["rot_1"], vertices["rot_2"], vertices["rot_3"]]).astype(np.float32)
+        )
+
+        diagonal = np.zeros((len(vertices), 3, 3), dtype=np.float32)
+        diagonal[:, 0, 0] = scales[:, 0] * scales[:, 0]
+        diagonal[:, 1, 1] = scales[:, 1] * scales[:, 1]
+        diagonal[:, 2, 2] = scales[:, 2] * scales[:, 2]
+        covariances = rotations @ diagonal @ np.transpose(rotations, (0, 2, 1))
+    else:
+        if not {"red", "green", "blue"}.issubset(property_names):
+            raise ValueError(
+                f"PLY file {path} is neither a Gaussian-splat cloud nor a colored point cloud."
+            )
+        colors = np.column_stack([vertices["red"], vertices["green"], vertices["blue"]]).astype(np.float32) / 255.0
+        opacities = np.ones(len(vertices), dtype=np.float32)
+        point_variance = np.float32(1e-6)
+        covariances = np.zeros((len(vertices), 3, 3), dtype=np.float32)
+        covariances[:, 0, 0] = point_variance
+        covariances[:, 1, 1] = point_variance
+        covariances[:, 2, 2] = point_variance
 
     valid = np.isfinite(means).all(axis=1)
     valid &= np.isfinite(colors).all(axis=1)
@@ -538,6 +626,7 @@ def camera_pose(center: np.ndarray, distance: float, azimuth_deg: float, elevati
 def stem_orbit_pose(
     stem_start: np.ndarray,
     stem_end: np.ndarray,
+    target_point: np.ndarray,
     distance: float,
     azimuth_deg: float,
     roll_deg: float,
@@ -545,18 +634,105 @@ def stem_orbit_pose(
     axis_direction = normalize(stem_end - stem_start)
     radial_a, radial_b = perpendicular_basis(axis_direction)
     azimuth = math.radians(azimuth_deg)
-    midpoint = (stem_start + stem_end) * 0.5
 
     radial = math.cos(azimuth) * radial_a + math.sin(azimuth) * radial_b
-    eye = midpoint + distance * radial
+    eye = target_point + distance * radial
 
-    return look_at_pose(eye=eye, target=midpoint, up_hint=axis_direction, roll_deg=roll_deg)
+    return look_at_pose(eye=eye, target=target_point, up_hint=axis_direction, roll_deg=roll_deg)
 
 
 def choose_stem_axis(clouds: list[LoadedGaussianCloud]) -> tuple[np.ndarray, np.ndarray] | None:
     for cloud in clouds:
         if cloud.stem_axis is not None:
             return cloud.stem_axis
+    return None
+
+
+def stem_anchor_point(
+    cloud: LoadedGaussianCloud,
+    radial_fraction: float = 0.08,
+    lower_axis_fraction: float = 0.35,
+) -> np.ndarray | None:
+    if cloud.stem_axis is None:
+        return None
+
+    stem_start, stem_end = cloud.stem_axis
+    axis_vector = stem_end - stem_start
+    axis_length = float(np.linalg.norm(axis_vector))
+    if axis_length < 1e-8:
+        return None
+
+    axis_direction = axis_vector / axis_length
+    offsets = cloud.means - stem_start[None, :]
+    axis_position = offsets @ axis_direction
+    projected = stem_start[None, :] + axis_position[:, None] * axis_direction[None, :]
+    radial_distance = np.linalg.norm(cloud.means - projected, axis=1)
+
+    scene_extent = np.max(cloud.means.max(axis=0) - cloud.means.min(axis=0))
+    radial_threshold = max(scene_extent * radial_fraction, 1e-4)
+
+    stem_mask = axis_position >= 0.0
+    stem_mask &= axis_position <= axis_length * lower_axis_fraction
+    stem_mask &= radial_distance <= radial_threshold
+
+    if int(np.count_nonzero(stem_mask)) < 20:
+        fallback_mask = axis_position >= 0.0
+        fallback_mask &= axis_position <= axis_length * 0.5
+        fallback_mask &= radial_distance <= radial_threshold * 2.0
+        if int(np.count_nonzero(fallback_mask)) < 20:
+            return None
+        stem_mask = fallback_mask
+
+    return np.median(cloud.means[stem_mask], axis=0).astype(np.float32)
+
+
+def align_clouds_by_stem_midpoint(clouds: list[LoadedGaussianCloud]) -> list[LoadedGaussianCloud]:
+    axis_midpoints = [
+        (cloud.stem_axis[0] + cloud.stem_axis[1]) * 0.5
+        for cloud in clouds
+        if cloud.stem_axis is not None
+    ]
+    if not axis_midpoints:
+        return clouds
+
+    reference_midpoint = axis_midpoints[0].astype(np.float32)
+    aligned: list[LoadedGaussianCloud] = []
+    for cloud in clouds:
+        if cloud.stem_axis is None:
+            aligned.append(cloud)
+            continue
+        midpoint = ((cloud.stem_axis[0] + cloud.stem_axis[1]) * 0.5).astype(np.float32)
+        translation = reference_midpoint - midpoint
+        aligned.append(translated_cloud(cloud, translation))
+    print("Aligned all timestep clouds by shared stem-axis midpoint.")
+    return aligned
+
+
+def align_clouds_by_stem_anchor(clouds: list[LoadedGaussianCloud]) -> list[LoadedGaussianCloud]:
+    anchors = [stem_anchor_point(cloud) for cloud in clouds]
+    reference_anchor = next((anchor for anchor in anchors if anchor is not None), None)
+    if reference_anchor is None:
+        return clouds
+
+    aligned: list[LoadedGaussianCloud] = []
+    aligned_count = 0
+    for cloud, anchor in zip(clouds, anchors, strict=False):
+        if anchor is None:
+            aligned.append(cloud)
+            continue
+        translation = reference_anchor - anchor
+        aligned.append(translated_cloud(cloud, translation))
+        aligned_count += 1
+
+    print(f"Aligned {aligned_count} timestep clouds by stem-adjacent anchor points.")
+    return aligned
+
+
+def choose_stem_anchor(clouds: list[LoadedGaussianCloud]) -> np.ndarray | None:
+    for cloud in clouds:
+        anchor = stem_anchor_point(cloud)
+        if anchor is not None:
+            return anchor
     return None
 
 
@@ -672,6 +848,7 @@ def frame_pose(
     start_azim: float,
     total_rotation: float,
     stem_axis: tuple[np.ndarray, np.ndarray] | None,
+    stem_anchor: np.ndarray | None,
     scene_center: np.ndarray,
     distance: float,
     elevation: float,
@@ -684,6 +861,7 @@ def frame_pose(
     return stem_orbit_pose(
         stem_start=stem_axis[0],
         stem_end=stem_axis[1],
+        target_point=stem_anchor if stem_anchor is not None else (stem_axis[0] + stem_axis[1]) * 0.5,
         distance=distance,
         azimuth_deg=azimuth,
         roll_deg=roll,
@@ -695,6 +873,7 @@ def build_render_tasks(
     start_azim: float,
     total_rotation: float,
     stem_axis: tuple[np.ndarray, np.ndarray] | None,
+    stem_anchor: np.ndarray | None,
     scene_center: np.ndarray,
     distance: float,
     elevation: float,
@@ -715,6 +894,7 @@ def build_render_tasks(
                     start_azim=start_azim,
                     total_rotation=total_rotation,
                     stem_axis=stem_axis,
+                    stem_anchor=stem_anchor,
                     scene_center=scene_center,
                     distance=distance,
                     elevation=elevation,
@@ -735,6 +915,7 @@ def init_frame_worker(
     device: str,
     render_mode: str,
     point_radius: int,
+    frame_center_y_fraction: float,
 ) -> None:
     global _FRAME_WORKER_CLOUDS, _FRAME_WORKER_RENDERER
     _FRAME_WORKER_CLOUDS = clouds
@@ -747,6 +928,7 @@ def init_frame_worker(
         device=device,
         render_mode=render_mode,
         point_radius=point_radius,
+        frame_center_y_fraction=frame_center_y_fraction,
     )
 
 
@@ -778,13 +960,14 @@ class GaussianSplatRenderer:
         device: str,
         render_mode: str,
         point_radius: int,
+        frame_center_y_fraction: float,
     ) -> None:
         self.width = width
         self.height = height
         self.sigma_cutoff = float(sigma_cutoff)
         self.max_splat_radius = int(max_splat_radius)
         self.cx = width / 2.0
-        self.cy = height / 2.0
+        self.cy = height * float(frame_center_y_fraction)
         self.fy = (height / 2.0) / math.tan(math.radians(vertical_fov_deg) / 2.0)
         self.fx = self.fy
         self.device = device
@@ -1125,6 +1308,7 @@ def build_video(
     frame_workers: int,
     render_mode: str,
     point_radius: int,
+    frame_center_y_fraction: float,
 ) -> None:
     output_path.parent.mkdir(parents=True, exist_ok=True)
     writer = cv2.VideoWriter(
@@ -1140,15 +1324,19 @@ def build_video(
     total_rotation = degrees_per_transition * max(len(clouds) - 1, 1)
     scene_center = (lower + upper) / 2.0
     scene_radius = np.max(upper - lower) / 2.0
-    distance = scene_radius / math.tan(math.radians(vertical_fov) / 2.0)
+    # Keep the default framing at the default FOV, but let custom FOV values
+    # act as a true zoom control instead of compensating them away.
+    distance = scene_radius / math.tan(math.radians(DEFAULT_VERTICAL_FOV) / 2.0)
     distance *= 1.15
     estimated_direction = estimate_scene_stem_direction(clouds)
     stem_axis = resolve_stem_axis_for_scene(choose_stem_axis(clouds), lower, upper, estimated_direction)
+    stem_anchor = choose_stem_anchor(clouds)
     tasks = build_render_tasks(
         schedule=schedule,
         start_azim=start_azim,
         total_rotation=total_rotation,
         stem_axis=stem_axis,
+        stem_anchor=stem_anchor,
         scene_center=scene_center,
         distance=distance,
         elevation=elevation,
@@ -1171,6 +1359,7 @@ def build_video(
                     device,
                     render_mode,
                     point_radius,
+                    frame_center_y_fraction,
                 ),
             ) as executor:
                 future_map = {
@@ -1198,6 +1387,7 @@ def build_video(
                 device=device,
                 render_mode=render_mode,
                 point_radius=point_radius,
+                frame_center_y_fraction=frame_center_y_fraction,
             )
             for task in tasks:
                 left_cloud = clouds[task.left_index]
@@ -1241,6 +1431,7 @@ def main() -> None:
         min_opacity=args.min_opacity,
         splat_scale=args.splat_scale,
     )
+    clouds = align_clouds_by_stem_anchor(clouds)
     lower, upper = global_scene_limits(clouds, padding_fraction=args.padding)
     schedule = build_frame_schedule(
         cloud_count=len(clouds),
@@ -1267,6 +1458,7 @@ def main() -> None:
         frame_workers=args.frame_workers,
         render_mode=args.render_mode,
         point_radius=args.point_radius,
+        frame_center_y_fraction=args.frame_center_y_fraction,
     )
     print(f"Saved video to: {args.output}")
 
