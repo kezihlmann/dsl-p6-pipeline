@@ -3,6 +3,8 @@ data/
 # Large experiment outputs
 *.pth
 *.ply
+!experiments/nerfacto_initialized_3dgs_t1902_hybrid/run_metadata/input.ply
+!experiments/nerfacto_initialized_3dgs_t1902_hybrid/run_metadata/inputs/*.ply
 
 # Local Python environments and secrets
 .venv/
@@ -13,4 +15,3 @@ logs/
 .ipynb_checkpoints/
 3dgs_project/
 nerfstudio_project/
-

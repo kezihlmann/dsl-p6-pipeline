@@ -1,0 +1,1 @@
+Namespace(sh_degree=3, source_path='/cluster/project/cropsci/jmercoli/3dgs_project/data/equal_timesteps_10/equal_timesteps_10/timestep_1902', model_path='/cluster/project/cropsci/jmercoli/3dgs_project/outputs/t1902_hyb_nd_colmap_nerfacto_nodedup_default', images='images', resolution=1, white_background=False, data_device='cuda', eval=True)
