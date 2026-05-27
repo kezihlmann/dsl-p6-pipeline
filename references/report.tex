@@ -1,0 +1,755 @@
+%%
+%% This is file `sample-sigconf.tex',
+%% generated with the docstrip utility.
+%%
+%% The original source files were:
+%%
+%% samples.dtx  (with options: `all,proceedings,bibtex,sigconf')
+%% 
+%% IMPORTANT NOTICE:
+%% 
+%% For the copyright see the source file.
+%% 
+%% Any modified versions of this file must be renamed
+%% with new filenames distinct from sample-sigconf.tex.
+%% 
+%% For distribution of the original source see the terms
+%% for copying and modification in the file samples.dtx.
+%% 
+%% This generated file may be distributed as long as the
+%% original source files, a s listed above, are part of the
+%% same distribution. (The sources need not necessarily be
+%% in the same archive or directory.)
+%%
+%%
+%% Commands for TeXCount
+%TC:macro \cite [option:text,text]
+%TC:macro \citep [option:text,text]
+%TC:macro \citet [option:text,text]
+%TC:envir table 0 1
+%TC:envir table* 0 1
+%TC:envir tabular [ignore] word
+%TC:envir displaymath 0 word
+%TC:envir math 0 word
+%TC:envir comment 0 0
+%%
+%%
+%% The first command in your LaTeX source must be the \documentclass
+%% command.
+%%
+%% For submission and review of your manuscript please change the
+%% command to \documentclass[manuscript, screen, review]{acmart}.
+%%
+%% When submitting camera ready or to TAPS, please change the command
+%% to \documentclass[sigconf]{acmart} or whichever template is required
+%% for your publication.
+%%
+%%
+\documentclass[sigconf]{acmart}
+\settopmatter{printacmref=true}
+\usepackage{placeins}
+\usepackage{subcaption}
+
+%%
+%% \BibTeX command to typeset BibTeX logo in the docs
+\AtBeginDocument{%
+  \providecommand\BibTeX{{%
+    Bib\TeX}}}
+
+%% Rights management information.  This information is sent to you
+%% when you complete the rights form.  These commands have SAMPLE
+%% values in them; it is your responsibility as an author to replace
+%% the commands and values with those provided to you when you
+%% complete the rights form.
+\setcopyright{acmlicensed}
+\copyrightyear{2026}
+\acmYear{2018}
+% \acmDOI{XXXXXXX.XXXXXXX}
+
+%% These commands are for a PROCEEDINGS abstract or paper.
+\acmConference[263-3300-10L Data Science Lab]{}{\today}{Zurich, Switzerland}
+%%
+%%  Uncomment \acmBooktitle if the title of the proceedings is different
+%%  from ``Proceedings of ...''!
+%%
+%%\acmBooktitle{Woodstock '18: ACM Symposium on Neural Gaze Detection,
+%%  June 03--05, 2018, Woodstock, NY}
+\acmISBN{978-1-4503-XXXX-X/18/06}
+
+
+%%
+%% Submission ID.
+%% Use this when submitting an article to a sponsored event. You'll
+%% receive a unique submission ID from the organizers
+%% of the event, and this ID should be used as the parameter to this command.
+%%\acmSubmissionID{123-A56-BU3}
+
+%%
+%% For managing citations, it is recommended to use bibliography
+%% files in BibTeX format.
+%%
+%% You can then either use BibTeX with the ACM-Reference-Format style,
+%% or BibLaTeX with the acmnumeric or acmauthoryear sytles, that include
+%% support for advanced citation of software artefact from the
+%% biblatex-software package, also separately available on CTAN.
+%%
+%% Look at the sample-*-biblatex.tex files for templates showcasing
+%% the biblatex styles.
+%%
+
+%%
+%% The majority of ACM publications use numbered citations and
+%% references.  The command \citestyle{authoryear} switches to the
+%% "author year" style.
+%%
+%% If you are preparing content for an event
+%% sponsored by ACM SIGGRAPH, you must use the "author year" style of
+%% citations and references.
+%% Uncommenting
+%% the next command will enable that style.
+%%\citestyle{acmauthoryear}
+
+
+%%
+%% end of the preamble, start of the body of the document source.
+\begin{document}
+
+%%
+%% The "title" command has an optional parameter,
+%% allowing the author to define a "short title" to be used in page headers.
+\title[DSL: 123]{3D-Consistent Segmentation and Neural Reconstruction for Plant Timelapses}
+
+%%
+%% The "author" command and its associated commands are used to define
+%% the authors and their affiliations.
+%% Of note is the shared affiliation of the first two authors, and the
+%% "authornote" and "authornotemark" commands
+%% used to denote shared contribution to the research.
+\author{Juliane Mercoli}
+\authornote{Equal contribution.}
+\orcid{0009-0007-9710-535X}
+\affiliation{
+  \institution{Department of Computer Science \\ ETH Zurich, Switzerland}
+  \city{}
+  \state{}
+  \country{}
+}
+
+\author{Kevin Zihlmann}
+\authornotemark[1]
+\orcid{}
+\affiliation{%
+  \institution{Department of Computer Science \\ ETH Zurich, Switzerland}
+  \city{}
+  \state{}
+  \country{}
+}
+
+% \author{Student Name}
+% \authornotemark[1]
+% \email{webmaster@marysville-ohio.com}
+% \affiliation{%
+%   \institution{Institute for Clarity in Documentation}
+%   \city{Dublin}
+%   \state{Ohio}
+%   \country{USA}
+% }
+
+\author{Joaquin Gajardo}
+\orcid{}
+\affiliation{%
+  \institution{Department of Environmental Systems Science \\ ETH Zurich, Switzerland}
+  \city{}
+  \state{}
+  \country{}
+}
+\author{Dr. Sergey Prokudin}
+\orcid{}
+\affiliation{%
+  \institution{ETH AI Center, ETH Zurich, Switzerland}
+  \city{}
+  \state{}
+  \country{}
+}
+
+\repolink{https://github.com/kezihlmann/dsl-p6-pipeline}
+
+%%
+%% By default, the full list of authors will be used in the page
+%% headers. Often, this list is too long, and will overlap
+%% other information printed in the page headers. This command allows
+%% the author to define a more concise list
+%% of authors' names for this purpose.
+\renewcommand{\shortauthors}{Team 6}
+
+%%
+%% The abstract is a short summary of the work to be presented in the
+%% article.
+\begin{abstract}
+Accurate 3D reconstruction of growing plants is important for phenotyping and growth monitoring because traits such as plant shape, leaf arrangement, and temporal development cannot be fully captured from single 2D images. Existing neural reconstruction methods such as 3D Gaussian Splatting and NeRF-style models are effective for novel-view synthesis, but they are usually evaluated on full images and are not designed for small, thin plant foregrounds in cluttered greenhouse scenes. This creates a gap for plant-centered reconstruction from synchronized RGB timelapses, where the plant occupies only a small image region and full-image metrics can be dominated by the pot, checkerboard, table, and background. We address this with a segmentation-guided reconstruction pipeline that uses binary plant masks to train and evaluate static 3DGS, dynamic 4DGS, and Nerfacto RGBA under foreground-aware metrics. On multi-view maize timelapse data captured with 22 calibrated GoPro cameras, static 3DGS achieves strong opacity-based silhouettes with IoU $0.783$ and Dice $0.877$, dynamic 4DGS reaches the highest plant-only PSNR of $22.21$, and Nerfacto RGBA produces strong RGB-derived silhouettes with IoU $0.803$ and Dice $0.887$, showing that the final pipeline should support both 3DGS for explicit foreground-aligned reconstruction and Nerfacto for smooth visual point-cloud extraction. However, the Nerfacto-to-3DGS initialization test shows that this smooth exported geometry does not directly translate into a better 3DGS initialization.
+\end{abstract}
+
+%%
+%% Keywords. The author(s) should pick words that accurately describe
+%% the work being presented. Separate the keywords with commas.
+%% A "teaser" image appears between the author and affiliation
+%% information and the body of the document, and typically spans the
+%% page.
+\begin{teaserfigure}
+\includegraphics[
+    width=0.5\textwidth,
+    keepaspectratio
+  ]{pictures/flowchart} \hspace{1cm}
+    \includegraphics[
+    width=0.4\textwidth,
+    keepaspectratio
+  ]{pictures/3dgs_1518_3d_visualization_v2.jpg}
+  \caption{
+  \textnormal{\textbf{Left: Reconstruction pipeline.} For each timestep, 22 images captured from different camera positions are used as multi-view input. The images are processed with SAM-3 to segment the plant in each view, and with the resulting masks the background is removed. The segmented image set is then used as input for three approaches: 3DGS, which produces a static 3D Gaussian representation; Nerfacto, which produces a static neural radiance field reconstruction; and 4DGS, which produces a time-dependent Gaussian representation. While 3DGS and Nerfacto reconstruct one timestep at a time as static 3D outputs, 4DGS jointly processes multiple timesteps to model plant development as a 4D reconstruction. \textbf{Right: 3D reconstructions using 3DGS.} Four rendered viewpoints of a reconstructed plant generated with 3DGS are shown, illustrating the recovered plant geometry and appearance from different viewing angles. Black Gaussian artefacts produced during reconstruction were manually removed in post-processing to improve the visual clarity of the final renderings.
+  }}
+  \Description{  3D reconstructed maize plant
+}
+  \label{fig:teaser}
+  \vspace{1em}
+\end{teaserfigure}
+
+% \received{20 February 2007}
+% \received[revised]{12 March 2009}
+% \received[accepted]{5 June 2009}
+
+%%
+%% This command processes the author and affiliation and title
+%% information and builds the first part of the formatted document.
+
+\newcommand\blfootnote[1]{%
+  \begingroup
+  \renewcommand\thefootnote{}\footnote{#1}%
+  \addtocounter{footnote}{-1}%
+  \endgroup
+}
+
+\maketitle
+
+\blfootnote{Author contributions using the CRediT framework \cite{brand2015beyond, devos2024few}:\\
+S1: Methodology, Software, Visualization, Investigation, Writing -
+Original Draft\\
+S2: Methodology, Software, Visualization, Investigation, Writing -
+Original Draft\\
+CG: Conceptualization, Supervision\\
+AC: Supervision, Methodology, Project Administration
+}
+
+%%\section{Instructions}
+%%This template has been adapted to the course Data Science Lab from the ACM SIG Template \cite{acm_template}. In the following sections you find some instructions for your Data Science Lab report, useful for writing a scientific paper as well. Please also read the preprint notice on the first page, which classifies this work as a preprint and permits this work to be showcased on the ETH Zurich and ETH AI Center platforms, while remaining eligible to be submitted to academic venues, including workshops, conferences, and journals. Also note that the code is to be published on a public repository (e.g., GitHub) with a permissive MIT license attached to it, including copyright by the (code) authors. These things enable the work to be used and contributed to by both academia and industry. It is also important to note that followup work is not restricted to go under the same license and is not required to be open-sourced. The sections that we recommend to include in your report are: Abstract, Introduction, Related Work, Methodology, Experimental Setup, Results, Discussion, Conclusion \& Future Work.  
+%%
+
+
+\section{Introduction}
+Accurate 3D reconstruction of growing plants is important for plant phenotyping, growth monitoring, and agricultural analysis. Many plant traits of interest, such as plant shape, leaf arrangement, height, volume, and growth dynamics, cannot be fully captured from a single 2D image. A temporally consistent 3D representation would make it possible to inspect plant development across time and support downstream phenotyping tasks that require more than per-image observations.
+
+Neural reconstruction methods such as 3D Gaussian Splatting and NeRF-style models have shown strong results for novel-view synthesis and 3D scene reconstruction. However, these methods are usually evaluated using full-image photometric metrics and are not designed specifically for small, thin foreground objects in cluttered greenhouse scenes. Existing plant phenotyping datasets also often provide already reconstructed 3D point clouds, while the setting considered here requires recovering plant-centered 3D representations directly from synchronized RGB images and camera calibration.
+
+This setting introduces several challenges. Plants contain thin leaves, self-occlusions, repeated textures, and strong appearance changes across viewpoints and time. In the greenhouse setup, the target plant occupies only a small fraction of the image, while the pot, checkerboard, table, and camera rig form a visually dominant background. A reconstruction method can therefore obtain high full-image PSNR or SSIM while still failing to reconstruct the plant accurately.
+
+This project addresses this gap with a segmentation-guided neural reconstruction pipeline for plant timelapses. Binary plant masks are first estimated from the input images and then used to guide reconstruction and evaluation. The pipeline compares static 3D Gaussian Splatting, dynamic 4D Gaussian Splatting, and Nerfacto RGBA under foreground-aware metrics, rather than relying only on full-image rendering scores.
+
+The main contributions are:
+\begin{itemize}
+    \item A segmentation-guided reconstruction pipeline is adapted to recover plant-centered 3D representations from synchronized multi-view RGB timelapses.
+    \item A foreground-aware evaluation protocol is introduced, including plant-only photometric metrics and silhouette IoU/Dice, to avoid background-dominated conclusions.
+    \item Static masked 3DGS, dynamic 4DGS, and Nerfacto RGBA are compared on multi-view maize timelapse data captured with 22 calibrated GoPro cameras.
+    \item The final analysis identifies which reconstruction branch should be used depending on the target output: explicit foreground-aligned Gaussian reconstruction or smoother point-cloud visualization.
+\end{itemize}
+
+The main insight is that no single reconstruction method is best for all plant reconstruction objectives. Static 3DGS provides strong explicit foreground alignment, dynamic 4DGS gives the strongest plant-only photometric score but less precise boundaries, and Nerfacto RGBA produces strong rendered-image silhouettes and smoother point-cloud exports. This motivates a configurable reconstruction pipeline rather than a single fixed method.
+
+
+\section{Related Work}
+Neural rendering methods provide the technical basis for this project. 3D Gaussian Splatting (3DGS) represents a scene as explicit 3D Gaussian primitives optimized through differentiable rendering~\cite{kerbl20233dgaussians}. Its fast rendering and explicit point-like representation make it attractive for plant reconstruction, where exported 3D structure is important. However, standard 3DGS is designed for general scene reconstruction and novel-view synthesis, not specifically for small plant foregrounds in cluttered greenhouse images. Without foreground guidance, the model can spend capacity on the pot, checkerboard, table, and background rather than the plant.
+
+Nerfstudio provides a modular framework for neural radiance field methods, including Nerfacto~\cite{nerfstudio}. Nerfacto is relevant because it supports RGBA inputs and can export point clouds, making it a useful NeRF-style comparison to Gaussian Splatting. In contrast to 3DGS, it tends to produce smoother visual point-cloud outputs in our setting. However, its accumulation maps do not necessarily behave like clean binary plant masks, so it must be evaluated carefully with foreground-aware metrics rather than interpreted directly as a segmentation method.
+
+Dynamic Gaussian methods extend static reconstruction to time-varying scenes. Dynamic 3D Gaussians model motion by allowing Gaussian primitives to move and rotate over time while maintaining persistent properties such as color and opacity~\cite{luiten2024dynamic3dgaussians}. This is relevant because plant growth is temporal. However, plant timelapses introduce a harder setting than many dynamic-scene benchmarks: the object is thin, slowly growing, highly self-occluding, and only occupies a small fraction of each image. This motivates evaluating dynamic 4DGS as a temporal extension, while still comparing it against stronger per-timestep static reconstructions.
+
+Agricultural 3D reconstruction has been studied as a way to recover traits that are difficult to measure from 2D images alone, such as plant height, volume, organ arrangement, and growth dynamics. Recent work on 2D-to-3D image reconstruction in agriculture highlights the need to combine geometric constraints, learning-based reconstruction, and semantic priors~\cite{sankaramaddi2026agriculture3d}. This supports our use of segmentation masks as semantic foreground guidance. Several plant datasets, such as Pheno4D~\cite{schunck2021pheno4d} and Pepper-4D~\cite{ahmed2026pepper4d}, provide high-quality spatio-temporal 3D point clouds for phenotyping. These datasets are closely related in goal, but differ from our setting because they already provide 3D point-cloud observations. In this project, the objective is to recover plant-centered 3D representations directly from synchronized RGB views and camera calibration.
+
+The closest related reconstruction work is Wheat3DGS, which applies 3D Gaussian Splatting to in-field wheat reconstruction, wheat-head instance segmentation, and phenotyping~\cite{wheat3dgs}. Wheat3DGS demonstrates that 3DGS can support plant phenotyping and provides a useful starting point for our reconstruction pipeline. However, its target is wheat-head instance reconstruction in field imagery, whereas our setting focuses on binary plant-vs-background reconstruction of individual greenhouse plants over time. This changes both the supervision and the evaluation: the main question is not only whether the RGB rendering is plausible, but whether the recovered 3D representation remains plant-centered and foreground-consistent.
+
+Botany-Bot is also directly relevant because it uses Gaussian Splatting for plant digital twins and introduces mask-opacity supervision to reduce spurious geometry outside the plant region~\cite{adebola2025botanybot}. This motivates the opacity-accumulation mask loss used in our 3DGS experiments. In contrast to Botany-Bot, this project compares several reconstruction branches under the same foreground-aware protocol and studies which branch is most appropriate for dataset creation: static 3DGS for explicit foreground-aligned Gaussian reconstruction, dynamic 4DGS for temporal modeling, or Nerfacto for smoother point-cloud extraction.
+
+%To be reviewed:
+Segmentation foundation models provide the foreground masks used by the reconstruction pipeline. The Segment Anything Model introduced promptable zero-shot segmentation~\cite{kirillov2023segment}, while Grounding DINO enables text-conditioned open-set detection~\cite{liu2023groundingdino}. We compare a color baseline, Grounding DINO + SAM, and SAM~3 for plant-background mask generation. These models are not the final reconstruction method, but they are essential because mask quality determines how well the downstream 3D models can focus on the plant.
+
+Overall, existing work provides strong tools for neural reconstruction, plant phenotyping, and segmentation, but it does not directly solve the setting studied here: plant-centered 3D reconstruction from synchronized RGB timelapses, where the plant is thin, occupies a small image region, and must be separated from a visually dominant greenhouse background. This motivates a pipeline that combines segmentation-guided reconstruction with foreground-aware evaluation rather than relying only on full-image novel-view synthesis metrics.
+
+
+
+\section{Methodology}
+
+\subsection{Overall Pipeline}
+The project pipeline has three main stages. The first stage produces binary plant-background masks for each image. The second component uses RGB images, camera calibration, and masks to train a neural 3D reconstruction model. The third stage consists of temporal reconstruction. The final goal is to obtain plant-centered renderings and silhouettes that are consistent across held-out views and, eventually, across time.
+
+\subsection{Plant-background Segmentation}
+For the segmentation of the plants, we compare three different methods: a handcrafted color method, a Grounding DINO based pipeline, and a SAM~3 pipeline. 
+\subsubsection{Color method}
+The color baseline converts each RGB image to HSV, thresholds green vegetation with lower and upper bounds $[25,30,30]$ and $[90,255,255]$, and then applies morphological closing, opening, and dilation with an elliptical kernel of size $5$ and two iterations. 
+\subsubsection{Grounding DINO + SAM ViT-L method}
+This method first uses Grounding DINO~\cite{liu2023groundingdino} with the Swin-T OGC configuration and the text prompt \texttt{"green leaves"} to detect the target plant. The highest scoring detection is then passed to the Segment Anything Model (SAM)~\cite{kirillov2023segmentanything} to obtain a binary mask. In this study, the SAM checkpoint is \texttt{sam\_vit\_l\_0b3195.pth}, corresponding to a ViT-L backbone rooted in the Vision Transformer family~\cite{dosovitskiy2021vit}.
+\subsubsection{SAM~3 method}
+This method uses the text prompt \texttt{"plant"} to generate masks. The associated model family is SAM~3, introduced in \emph{SAM 3: Segment Anything with Concepts}~\cite{carion2026sam3}. The implementation uses two passes. In pass~1, SAM~3 is applied to the full image and the highest-scoring detection is selected. That detection box is then expanded by a padding of $160$ pixels, cropped from the original image, and processed again in pass~2. If the crop pass returns a valid detection, the refined crop mask is pasted back into full-image coordinates. This procedure allows for higher mask resolutions. 
+\subsubsection{Ground-truth masks} \label{sssec:gt_masks}
+Ground-truth masks are produced from polygon annotations created in CVAT. The annotations cover three timesteps (\texttt{1002}, \texttt{2004}, and \texttt{3006}) and three camera views (\texttt{GX010014}, \texttt{GX010074}, and \texttt{GX010324}), yielding nine annotated image instances in total. 
+
+\subsubsection{Evaluation metrics}
+The evaluation is performed by comparing black and white pixels for all the masks with the ground-truth masks. Since the background pixels outnumber the plant pixels for small plants, we use these two metrics:  
+\begin{itemize}
+    \item IoU - intersection over union
+    \item mAP - mean average precision. It is defined as the average of foreground AP and background AP computed from binary predictions. 
+\end{itemize}
+
+\subsection{Foreground-guided Static 3D Gaussian Splatting}
+Static 3D Gaussian Splatting is used as the main reconstruction method. Each scene is represented as a set of 3D Gaussians with learnable position, opacity, covariance and color. Given calibrated camera parameters, the model renders an image by projecting and alpha-compositing the Gaussians into the image plane. Training minimizes the difference between rendered images and target images.
+
+The initial baseline follows the Wheat3DGS\cite{wheat3dgs} reconstruction pipeline. RGB images, COLMAP camera poses and sparse initialization points are loaded for each timestep. The baseline confirms that the reconstruction pipeline produces coherent renderings on the plant dataset. However, full-scene reconstruction is not aligned with the project objective because it reconstructs the pot, checkerboard, table, and background. Therefore, the reconstruction pipeline is modified to use binary plant masks as foreground supervision.
+
+
+\subsubsection{Foreground Masking}
+To focus reconstruction on the plant, we integrate binary plant masks into the training pipeline. We tested two main masking strategies.
+
+The first strategy is hard-masked RGB training. In this approach, all pixels outside the plant mask are replaced with black before training. This strongly simplifies the reconstruction problem, since the model no longer needs to represent background appearance. However, it modifies the original RGB images and is less flexible for later experiments using predicted masks.
+
+The second strategy is alpha-mask training. In this approach, the original RGB image is kept unchanged, but the plant mask is passed as an alpha mask through the camera pipeline. The mask is resized using nearest-neighbor interpolation to preserve binary boundaries and background pixels are ignored or zeroed through the alpha-mask mechanism. This approach is cleaner because the segmentation mask is treated as supervision rather than permanently modifying the dataset. It also naturally supports predicted masks from the 2D segmentation pipeline.
+
+
+\subsubsection{Loss Functions}
+
+Let $\Omega$ be the image domain, $I$ the ground-truth RGB image, $\hat{I}$ the rendered RGB image, $M \in \{0,1\}^{|\Omega|}$ the binary plant mask, and $\hat{A}$ the rendered accumulated opacity map. A pixel $p$ belongs to the plant foreground when $M_p=1$.
+
+\paragraph{Foreground-masked photometric loss.}
+The original 3DGS objective combines an $\ell_1$ RGB term with a D-SSIM term~\cite{kerbl20233dgaussians}, where SSIM measures structural similarity between images~\cite{wang2004ssim}. To focus reconstruction on the plant, this loss is applied on the masked foreground:
+\begin{equation}
+\mathcal{L}_{1}^{M}
+=
+\frac{
+\sum_{p \in \Omega} M_p \lVert \hat{I}_p - I_p \rVert_1
+}{
+\sum_{p \in \Omega} M_p + \epsilon
+}.
+\end{equation}
+The masked photometric loss is then:
+\begin{equation}
+\mathcal{L}_{\text{rgb}}^{M}
+=
+(1-\lambda_{\text{dssim}})\mathcal{L}_{1}^{M}
++
+\lambda_{\text{dssim}}
+\left(
+1-\text{SSIM}(M \odot \hat{I}, M \odot I)
+\right),
+\end{equation}
+where $\odot$ denotes element-wise multiplication. This suppresses the influence of the pot, checkerboard, table, and greenhouse background.
+
+\paragraph{RGB-derived silhouette loss.}
+As a geometry-aware ablation, a soft silhouette is derived from the rendered RGB image:
+\begin{equation}
+\hat{M}^{\text{rgb}}_p
+=
+\frac{
+\sum_{c \in \{r,g,b\}} |\hat{I}_{p,c}|
+}{
+\max_{q \in \Omega} \sum_{c \in \{r,g,b\}} |\hat{I}_{q,c}|+\epsilon
+}.
+\end{equation}
+The silhouette loss is:
+\begin{equation}
+\mathcal{L}_{\text{sil}}
+=
+\frac{1}{|\Omega|}
+\sum_{p \in \Omega}
+\left|
+\hat{M}^{\text{rgb}}_p - M_p
+\right|,
+\end{equation}
+and the corresponding objective is:
+\begin{equation}
+\mathcal{L}
+=
+\mathcal{L}_{\text{rgb}}^{M}
++
+\lambda_{\text{sil}}\mathcal{L}_{\text{sil}}.
+\end{equation}
+This loss encourages mask alignment, but only indirectly supervises geometry because the silhouette is derived from RGB intensity rather than the renderer opacity.
+
+\paragraph{Opacity-accumulation mask loss.}
+The opacity-based variant directly supervises the accumulated opacity produced by the Gaussian renderer. This follows the mask-opacity supervision used in Botany-Bot~\cite{adebola2025botanybot}. The accumulated opacity at pixel $p$ is:
+\begin{equation}
+\hat{A}_p
+=
+1 -
+\prod_{i \in \mathcal{G}(p)}
+(1-\alpha_{i,p}),
+\end{equation}
+where $\mathcal{G}(p)$ is the set of Gaussians contributing to pixel $p$, and $\alpha_{i,p}$ is the opacity contribution of Gaussian $i$. The opacity-accumulation mask loss is:
+\begin{equation}
+\mathcal{L}_{\text{acc}}
+=
+\frac{1}{|\Omega|}
+\sum_{p \in \Omega}
+\left|
+\hat{A}_p - M_p
+\right|.
+\end{equation}
+The full objective becomes:
+\begin{equation}
+\mathcal{L}
+=
+\mathcal{L}_{\text{rgb}}^{M}
++
+\lambda_{\text{acc}}\mathcal{L}_{\text{acc}}.
+\end{equation}
+This formulation directly constrains the rendered opacity field, penalizing spurious opacity outside the plant and encouraging sufficient opacity inside the plant region.
+
+
+\subsection{Nerfacto RGBA}
+As a NeRF-style comparison, we evaluate Nerfacto using Nerfstudio\cite{nerfstudio}. For each selected timestep, the plant mask is stored as the alpha channel of an RGBA image, while the original RGB values are preserved. A separate Nerfacto model is trained for each timestep using the corresponding COLMAP cameras and sparse initialization points.
+
+Nerfacto is evaluated using rendered RGB images and exported point clouds. RGB renderings are used for photometric metrics and for RGB-derived silhouette evaluation. Nerfstudio's standard point-cloud exporter is used to extract PLY files from the trained models for qualitative 3D inspection.
+
+\subsection{Dynamic 4D Gaussian Splatting}
+Dynamic 4DGS\cite{luiten2024dynamic3dgaussians} is evaluated as a temporal extension. Instead of reconstructing each timestep independently, 4DGS attempts to model several timesteps in a single dynamic Gaussian representation. This is closer to the long-term objective of representing plant growth over time.
+
+The 4DGS camera loader is modified to support plant masks. Since the original images are RGB images without alpha channels, SAM3 masks are loaded from the corresponding mask directory and used as foreground alpha masks. An opacity-mask loss is added so that the rendered alpha map is encouraged to match the plant foreground. The output includes masked RGB renderings, rendered alpha maps, depth maps, and exported Gaussian centers for 3D inspection.
+
+
+\subsection{Evaluation Metrics for Reconstruction}
+A central methodological issue is that full-image reconstruction metrics are misleading for this dataset. The plant occupies only a small fraction of the image, while the remaining pixels often correspond to black or static background. A model can therefore obtain high full-image PSNR or SSIM without accurately reconstructing the plant.
+
+Evaluation is therefore performed at three levels:
+\begin{itemize}
+    \item \textbf{Full-image metrics:} PSNR, SSIM, LPIPS, and MAE over the entire image.
+    \item \textbf{Plant-only metrics:} PSNR and MAE computed only on pixels inside the ground-truth plant mask.
+    \item \textbf{Silhouette metrics:} IoU and Dice/F1 between predicted plant silhouettes and reference SAM3 plant masks.
+\end{itemize}
+
+For a region of interest $R \subseteq \Omega$, such as the full image or plant mask, the mean squared error is:
+\begin{equation}
+\text{MSE}_{R}
+=
+\frac{1}{|R|}
+\sum_{p \in R}
+\lVert \hat{I}_p - I_p \rVert_2^2.
+\end{equation}
+
+For images normalized to $[0,1]$, PSNR is:
+\begin{equation}
+\text{PSNR}_{R}
+=
+10 \log_{10}
+\left(
+\frac{1}{\text{MSE}_{R}}
+\right).
+\end{equation}
+
+The plant-only MAE is:
+\begin{equation}
+\text{MAE}_{R}
+=
+\frac{1}{|R|}
+\sum_{p \in R}
+\lVert \hat{I}_p - I_p \rVert_1.
+\end{equation}
+
+For silhouette evaluation, let $S$ be the ground-truth plant mask and $\hat{S}$ the predicted silhouette. Intersection-over-Union and Dice are:
+\begin{equation}
+\text{IoU}
+=
+\frac{|\hat{S} \cap S|}
+{|\hat{S} \cup S|},
+\end{equation}
+
+\begin{equation}
+\text{Dice}
+=
+\frac{2|\hat{S} \cap S|}
+{|\hat{S}| + |S|}.
+\end{equation}
+
+
+\section{Experimental Setup}
+\subsection{Data}
+The dataset contains synchronized multi-view timelapse images of maize and sunflower plants captured in a controlled greenhouse setup. Each timestep is recorded from 22 calibrated GoPro cameras arranged around the plant. The cameras provide simultaneous views from different angles, enabling novel-view evaluation and multi-view consistency analysis. The scene contains the target plant, a pot, a checkerboard calibration pattern, a table, and greenhouse background structures.
+
+The reconstruction experiments focus on the maize sequence. Ten equally spaced timesteps are selected to cover different growth stages, sampled approximately every 30 hours, used for all three methods. As 4DGS contains a temporal componenet, an additional experiment is performed on 10 closely spaced timesteps sampled approximately every hour. For each timestep, the available calibrated views are split into 16 training and 6 held-out test cameras. The held-out cameras are used to evaluate whether the reconstructed representation generalizes to unseen viewpoints.
+
+Figure~\ref{fig:dataset_camera_setup} shows the multi-view acquisition setup used to capture the plant timelapse sequence.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.45\textwidth]{pictures/greenhouse_setup.png}
+\caption{
+Multi-view greenhouse acquisition setup with 22 calibrated GoPro cameras arranged around the plant. 
+}
+\Description{Photograph of the greenhouse acquisition setup showing the plant in the center and multiple GoPro cameras arranged around it.}
+\label{fig:dataset_camera_setup}
+\vspace{-0.8em}
+\end{figure}
+
+
+\subsection{Segmentation}
+Every segmentation method is evaluated on the same set of nine frames coming from the three different timesteps and three different cameras (see \ref{sssec:gt_masks}). The timesteps are chosen in order to perform the evaluation on both small, medium and large plants. Similarly, the three camera positions are chosen to differ as much as possible (front view, side view and top view). 
+
+The Grounding DINO pipeline runs on CPU and uses the following settings: checkpoint \texttt{groundingdino\_swint\_ogc.pth}, text prompt \texttt{"green leaves"}, box threshold $0.25$, and text threshold $0.20$. The SAM stage uses the ViT-L checkpoint \texttt{sam\_vit\_l\_0b3195.pth}. The SAM~3 notebook uses \texttt{facebook/sam3} with the text prompt \texttt{"plant"}. Here the prompt \texttt{"plant"} is chosen because it yields better results than the prompt \texttt{"green leaves"}. 
+
+
+\subsection{Static 3DGS Experiments}
+The main static 3DGS experiment uses full-resolution masked training. Each of the ten equally spaced timesteps is trained independently for 15,000 iterations. For every run, the final Gaussian point cloud, rendered training views, and rendered held-out test views are saved. The main evaluation is computed on held-out test views using plant-only PSNR/MAE and silhouette IoU/Dice. LPIPS is computed when memory allows, but it is omitted for larger full-resolution plant crops when GPU memory becomes limiting.
+
+\subsection{Nerfacto Experiment}
+The Nerfacto baseline is evaluated on the same timesteps as the static 3DGS experiment. The RGB images are converted to RGBA format using the available plant masks as alpha channels, and one Nerfacto model is trained per timestep for 30,000 iterations.
+
+For rendering evaluation, each trained model is rendered on the test split. Rendering and metric computation are performed at a downscale factor of 4 because of memory issues. Full-image and plant-only PSNR, SSIM, and LPIPS as well as silhouette metrics are computed from the RGB renders.
+
+\subsection{Dynamic 4DGS Experiment}
+The dynamic experiment evaluates masked 4D Gaussian Splatting on the same 10 equally spaced maize timesteps used for static 3DGS and Nerfacto. Unlike the static methods, which train one independent model per timestep, 4DGS trains a single dynamic Gaussian representation over all 10 timesteps. The resulting dataset contains 22 calibrated views per timestep, with 190 training cameras and 30 held-out test cameras in total.
+
+The 4DGS camera loader is modified to load SAM~3 masks from the corresponding mask directory. These masks are used as foreground alpha masks, so the training signal focuses on the plant rather than the greenhouse background. We also use foreground-weighted photometric supervision and an opacity-mask loss to encourage the rendered alpha map to match the plant foreground. The main equal-timestep 4DGS model is trained for 5000 iterations; attempts to continue training to 7000 iterations were limited by runtime and stability. For comparison, we also trained 4DGS on 10 closely spaced timesteps, where temporal changes are smaller (one timestep every hour).
+
+\subsection{Ablation Experiments}
+Ablation experiments are conducted to identify which factors most affect plant-only reconstruction quality. The tested variants include:
+\begin{itemize}
+    \item hard-masked RGB training versus alpha-mask training,
+    \item alpha-only training versus silhouette loss,
+    \item default densification versus stronger densification (increasing the number of points in the initial point cloud),
+    \item COLMAP initialization versus naive plant-focused initialization,
+    \item RGB-derived silhouette loss versus opacity-based alpha supervision.
+\end{itemize}
+
+These ablations are performed on selected timesteps (frame0001 and frame1180) and with the 3DGS method. 
+
+
+\section{Results}
+\subsection{Segmentation}
+Table~\ref{tab:summary} summarizes the main segmentation results. The reported values are the mean and the confidence intervals across the nine annotated image instances. SAM~3 is the strongest method on both metrics, followed by the color baseline, while the Grounding DINO + SAM ViT-L pipeline achieves the lowest average scores on this study set.
+
+\begin{table}[h]
+\centering
+\caption{Summary of the segmentation results.}
+\label{tab:summary}
+\begin{tabular}{lcc}
+\toprule
+Method & mAP & IoU \\
+\midrule
+Color method & 0.928 $\pm$ 0.016 & 0.861 $\pm$ 0.031 \\
+Grounding DINO + SAM ViT-L & 0.897 $\pm$ 0.038 & 0.806 $\pm$ 0.067 \\
+SAM 3 & \textbf{0.975 $\pm$ 0.002} & \textbf{0.951 $\pm$ 0.005} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The color baseline performs surprisingly well, reaching an IoU $0.861$ and a mAP $0.928$. Since the plant only consists of a green stem and green leaves, a tuned HSV heuristic is already a strong baseline.
+
+The Grounding DINO + SAM ViT-L pipeline is less stable on this dataset, with mean IoU $0.806$ and mean mAP $0.897$.
+
+Figure~\ref{fig:sample2004} shows a qualitative example from timestep \texttt{2004}. The visual comparison indicates that the SAM~3 masks provide higher-quality plant segmentations than the two alternative methods. In particular, the other methods either incorrectly classify parts of the background as plant regions or produce less precise plant contours with less sharply defined boundaries.
+
+Overall, these results support our decision of using SAM~3 masks for all the 3D reconstruction methods. 
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=\linewidth]{pictures/sample_2004_segmentation_methods_comparison.png}
+\caption{Mask comparison for timestep \texttt{2004} and view \texttt{GX010074}. The top row shows the original plant image and the ground-truth mask annotated in CVAT. The bottom row shows the three segmentation methods.}
+\label{fig:sample2004}
+\end{figure}
+
+
+\subsection{Reconstruction Comparison Across Methods}
+
+\subsubsection{Quantitative comparison}
+
+Tables~\ref{tab:photometric_results} and~\ref{tab:silhouette_results} summarize the main foreground-aware reconstruction metrics. Static masked 3DGS achieves strong silhouette alignment, with mean held-out IoU $0.783 \pm 0.025$ and Dice $0.877 \pm 0.016$ across the 10 timesteps. Dynamic 4DGS achieves the highest plant-only PSNR, but lower silhouette overlap. Nerfacto RGBA obtains competitive RGB-derived silhouette scores, with IoU $0.803$ and Dice $0.887$, showing that the visible rendered plant is well aligned with the SAM3 foreground masks.
+
+\begin{table}[t]
+\centering
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{lccc}
+\toprule
+Method 
+& PSNR $\uparrow$ 
+& SSIM $\uparrow$ 
+& LPIPS $\downarrow$ \\
+\midrule
+Static 3DGS 
+& $17.79 \pm 0.29$ 
+& $\mathbf{0.991 \pm 0.005}$ 
+& $0.065 \pm 0.016$ \\
+
+Dynamic 4DGS 
+& $\mathbf{22.21 \pm 2.20}$
+& $0.861 \pm 0.049$
+& $0.0063 \pm 0.005$\\
+
+Nerfacto RGBA 
+& $17.20 \pm 1.84$
+& $0.980 \pm 0.080$
+& $\mathbf{0.0070 \pm 0.002}$ \\
+\bottomrule
+\end{tabular}
+\caption{
+Foreground-aware photometric reconstruction metrics for the three reconstruction branches. 
+Static 3DGS, Nerfacto RGBA and 4DGS are evaluated on the same 10 equally spaced maize timesteps, sampled every 30 hours, with each timestep reconstructed independently from 16 training views and evaluated on 6 held-out test views.  
+Values are reported as mean $\pm$ 90\% confidence interval across timesteps. Values are computed on plant foreground pixels.
+}
+\label{tab:photometric_results}
+\vspace{-0.8em}
+\end{table}
+
+\begin{table}[t]
+\centering
+\setlength{\tabcolsep}{5pt}
+\begin{tabular}{lcc}
+\toprule
+Method 
+& Sil. IoU $\uparrow$ 
+& Sil. Dice $\uparrow$ \\
+\midrule
+Static 3DGS 
+& $0.783 \pm 0.015$
+& $0.877 \pm 0.009$ \\
+
+Dynamic 4DGS 
+& $0.640 \pm 0.030$
+& $0.779 \pm 0.022$ \\
+
+Nerfacto RGBA 
+& $\mathbf{0.803 \pm 0.052}$
+& $\mathbf{0.887 \pm 0.034}$ \\
+\bottomrule
+\end{tabular}
+\caption{
+Foreground silhouette reconstruction metrics for the three reconstruction branches. 
+Static 3DGS, 4DGS and Nerfacto RGBA are evaluated on 10 equally spaced maize timesteps.
+Values are reported as mean $\pm$ 90\% confidence interval across timesteps. 
+Silhouette IoU and Dice compare the predicted plant foreground in held-out views against the SAM~3 foreground reference. 
+}
+\label{tab:silhouette_results}
+\vspace{-0.8em}
+\end{table}
+
+
+\subsubsection{Static - 3DGS} Static masked 3DGS gives strong plant silhouettes and remains a reliable method for foreground-aligned Gaussian reconstruction. Its plant-only PSNR is moderate, indicating that it captures the projected plant extent better than fine texture, color, and detailed leaf boundaries. This is expected because plants contain thin leaves, self-occlusions, and repeated visual patterns so small geometric misalignments around leaves can produce large pixel errors, even when the silhouette remains mostly correct. 
+Static 3DGS also shows a train-test gap. Training-view silhouettes are often above 0.90 IoU, while held-out test-view silhouettes are lower. This indicates that the model fits observed views well but still has limited generalization to unseen viewpoints. In addition, since each timestep is reconstructed independently, static 3DGS also does not enforce temporal consistency across plant growth.
+
+\subsubsection{Dynamic - 4DGS}
+Dynamic 4DGS is evaluated on the same 10 equally spaced timesteps as static 3DGS and Nerfacto, but with a single model jointly representing all timesteps. At 5000 iterations, the model reaches plant-only PSNR $22.21 \pm 2.20$, silhouette IoU $0.640 \pm 0.030$, and Dice $0.779 \pm 0.022$. This gives the highest plant-only PSNR among the three reconstruction branches, showing that the dynamic model can reconstruct the foreground appearance well when trained with foreground-weighted supervision.
+However, its silhouette scores remain lower than static 3DGS and Nerfacto. This indicates that 4DGS captures the plant appearance and coarse structure, but produces less precise foreground boundaries. Qualitatively, the model tends to over-smooth thin leaves and sometimes introduces small floating opacity artifacts. This is expected because 4DGS must explain multiple plant states with one shared temporal representation, whereas static 3DGS and Nerfacto optimize each timestep independently.
+As an additional experiment, we trained 4DGS on 10 closely spaced timesteps, where temporal changes between frames are smaller. In that setting, the model reached plant-only PSNR $24.76 \pm 1.50$, silhouette IoU $0.688 \pm 0.034$, and Dice $0.814 \pm 0.024$. These stronger scores suggest that 4DGS is better suited to short temporal windows than to widely spaced growth stages. Overall, dynamic 4DGS is promising for temporal visualization and growth modeling, but it is not yet the most reliable branch for clean foreground-aligned plant geometry.
+
+
+\subsubsection{Nerfacto} Nerfacto RGBA obtains high full-image metrics, with full-image PSNR 31.63, SSIM 0.980, and LPIPS 0.047. Since the average ground-truth foreground fraction is only 1.07\%, these full-image scores remain background-dominated. However, the RGB-derived silhouette metrics show that Nerfacto reconstructs the visible plant foreground competitively, reaching IoU 0.803 and Dice 0.887. This makes Nerfacto a strong option for visual rendering and point-cloud generation. Qualitatively, its exported point clouds appear smoother than the raw 3DGS exports because Nerfacto samples a dense radiance-field representation, whereas the 3DGS PLY stores Gaussian centers rather than a dense surface point cloud.
+
+\subsubsection{Nerfacto-derived 3DGS initialization}
+
+We further tested whether the smoother Nerfacto point clouds could be used as geometry priors for 3DGS. A Nerfacto point cloud with 3163 points was exported, converted to the Wheat-3DGS PLY format, and aligned to the COLMAP coordinate frame of timestep \texttt{1902}. Directly replacing the COLMAP sparse cloud with this Nerfacto cloud was not successful: the optimized Gaussians remained nearly transparent and produced no foreground silhouette. Hybrid initialization, combining COLMAP and Nerfacto points, trained stably but gave metrics almost identical to COLMAP-only initialization. This suggests that Nerfacto point clouds are useful as smooth exported geometry, but are not effective drop-in 3DGS initializers without adapting opacity initialization, scale estimation, pruning, or densification.
+
+
+
+\subsubsection{Qualitative Comparison}
+\begin{figure}[!htbp]
+\centering
+\setlength{\tabcolsep}{2pt}
+\renewcommand{\arraystretch}{0.85}
+
+\newcommand{\qualimgtop}[1]{%
+  \includegraphics[
+    width=0.46\linewidth,
+    height=0.38\linewidth,
+    keepaspectratio,
+    clip
+  ]{#1}%
+}
+
+\newcommand{\qualimgbottom}[1]{%
+  \includegraphics[
+    width=0.31\linewidth,
+    height=0.30\linewidth,
+    keepaspectratio,
+    clip
+  ]{#1}%
+}
+
+\begin{tabular}{cc}
+\qualimgtop{pictures/reconstruction_comparison/gt_rgb2.png} &
+\qualimgtop{pictures/reconstruction_comparison/sam3_mask.png} \\[-1pt]
+\small (a) Input RGB &
+\small (b) SAM3 mask
+\end{tabular}
+
+
+\begin{tabular}{ccc}
+\qualimgbottom{pictures/reconstruction_comparison/3dgs_render2.png} &
+\qualimgbottom{pictures/reconstruction_comparison/nefacto_render2.png} &
+\qualimgbottom{pictures/reconstruction_comparison/4dgs_render2.png} \\[-1pt]
+\small (c) Static 3DGS &
+\small (d) Nerfacto RGBA &
+\small (e) Dynamic 4DGS
+\end{tabular}
+
+\caption{
+Qualitative reconstruction comparison for the same timestep. 
+The input RGB image and SAM~3 mask provide the image-space foreground reference. 
+Static 3DGS and Nerfacto reconstruct the timestep independently, while 4DGS renders the same timestep from a shared temporal Gaussian representation.
+}
+\Description{
+Comparison figure showing input RGB, SAM3 mask, Static 3DGS render, Nerfacto RGBA render, and Dynamic 4DGS render for the same timestep and camera.
+}
+\label{fig:reconstruction_comparison}
+\vspace{-0.8em}
+\end{figure}
+
+
+
+Figure~\ref{fig:reconstruction_comparison} compares the three reconstruction branches on the same timestep and held-out camera view. The RGB image and SAM~3 mask provide the image-space foreground reference. Static 3DGS captures the main plant structure but has blurrier thin leaves. Nerfacto RGBA gives a clean and smooth foreground rendering. Dynamic 4DGS reconstructs the same plant state from a shared temporal representation, but its boundaries are less precise than the static methods. 
+
+% Add GIF??
+
+\subsection{Discussion and Recommended Pipeline}
+
+For plant-background mask generation, SAM~3 is the strongest evaluated segmentation method and is therefore used as the automatic foreground reference for reconstruction. The reconstruction results show that the best method depends on the target output. Static masked 3DGS, dynamic 4DGS, and Nerfacto RGBA each reconstruct the plant in a different way, and their strengths are not captured by a single metric. Full-image PSNR and SSIM are especially misleading because the plant occupies only a small fraction of the image. Foreground-aware metrics and qualitative inspection are therefore necessary to evaluate whether a method actually extracts a useful plant-centered 3D representation.
+
+A practical issue shared by the reconstructed 3D outputs is that the raw exported point clouds are not immediately clean plant models. This is especially important for comparing 3DGS and Nerfacto, since the 3DGS export contains Gaussian centers while the Nerfacto export is a dense sampled point cloud, making Nerfacto visually smoother but not directly equivalent. Across the tested methods, the exports can contain spurious off-plant points, floating geometry, and elongated splat-like artifacts. These artifacts are especially visible when the full point cloud is rendered without filtering, since a small number of distant outliers can dominate the view and make the plant difficult to inspect. For qualitative visualization and downstream dataset creation, a plant-centered post-processing step is therefore required. This includes focusing the cloud around the plant region, removing distant outliers, and filtering points or Gaussian centers that are not part of the plant. 
+
+The initialization ablation further shows that Nerfacto and 3DGS should remain separate pipeline branches. Directly replacing COLMAP points with a Nerfacto-derived point cloud failed because the optimized Gaussians remained nearly transparent and produced no foreground silhouette. Hybrid COLMAP+Nerfacto initialization was stable, but its metrics were almost identical to COLMAP-only initialization.
+
+For processing the full dataset, the recommended pipeline should therefore include both static masked 3DGS and Nerfacto RGBA. Static 3DGS should be used when the priority is explicit Gaussian reconstruction, opacity-based foreground alignment, and mask-consistent silhouettes. Nerfacto RGBA should be used when the priority is smooth visual rendering and qualitative point-cloud extraction. In both cases, exported 3D representations should be followed by a plant-centered cleaning step to remove outlier points, floating artifacts, and elongated off-plant splats before using the point clouds as final dataset outputs.
+this is teh cutrent diussion oart shoudli add soething? 
+
+
+\section{Conclusion and Future Work}
+
+This project demonstrates that segmentation-guided neural reconstruction can produce meaningful plant-centered 3D representations from synchronized multi-view greenhouse timelapse data. Binary plant masks are essential because they prevent reconstruction models from being dominated by the pot, checkerboard, table, and greenhouse background.
+
+The results show that different reconstruction branches are useful for different outputs. Static masked 3DGS provides strong foreground alignment, with held-out silhouette IoU $0.783$ and Dice $0.877$, making it suitable for explicit Gaussian reconstruction and mask-consistent silhouettes. Dynamic 4DGS achieves the strongest plant-only photometric quality on the equal-timestep comparison, with plant-only PSNR $22.21$, and improves further to $24.76$ on closely spaced timesteps. Nerfacto RGBA produces strong RGB-derived silhouettes, with IoU $0.803$ and Dice $0.887$, and gives smoother point-cloud exports for qualitative 3D inspection. However, the Nerfacto-to-3DGS initialization test shows that this smooth exported geometry does not directly translate into a better 3DGS initialization. 
+
+The main conclusion is that no single method is best for all plant reconstruction objectives. Full-image PSNR and SSIM are insufficient because the plant occupies only a small fraction of the image. Opacity maps, accumulation maps, RGB-derived masks, and exported point clouds capture different aspects of the reconstruction. For this reason, the final pipeline should include both static masked 3DGS and Nerfacto RGBA as selectable reconstruction options: 3DGS for explicit foreground-aware Gaussian reconstruction, and Nerfacto for smooth visual point-cloud extraction.
+
+Future work should evaluate these reconstruction branches on more timesteps, plants, and camera splits. A more systematic point-cloud cleaning stage is also needed before using the exports as final plant assets, since raw point clouds can contain outlier points, floating geometry, and elongated off-plant splats. This cleaning could combine plant-centered cropping, statistical outlier removal, opacity filtering, and foreground-reprojection checks. Future evaluation should compare 3DGS and Nerfacto point clouds using geometric metrics such as compactness, outlier ratio, foreground reprojection consistency, and temporal smoothness. Finally, the dynamic 4DGS branch remains promising for plant growth modeling, but requires better foreground-weighted losses, mask-aware densification, and temporal priors to preserve thin leaf boundaries and reduce floating artifacts. Future work could also explore GARField, which groups scene components in radiance fields, as a way to move beyond binary plant foreground extraction toward leaf-level 3D segmentation \cite{kim2024garfield}. In this setting, Garfield could be used to separate individual leaves or coherent leaf groups in the reconstructed radiance field, enabling more detailed downstream analysis of leaf geometry, growth, and occlusion patterns.
+
+
+
+%%
+%% The next two lines define the bibliography style to be used, and
+%% the bibliography file.
+\bibliographystyle{plainnat} % Plain referencing style
+\bibliography{bibliography} % Use the example bibliography file 
+
+
+%%
+%% If your work has an appendix, this is the place to put it.
+
+
+
+
+\end{document}
+\endinput
+%%
+%% End of file `sample-sigconf.tex'.
