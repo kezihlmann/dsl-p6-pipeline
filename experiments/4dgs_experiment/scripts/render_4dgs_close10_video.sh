@@ -1,0 +1,38 @@
+#!/bin/bash
+#SBATCH --job-name=4dgs_render_close10
+#SBATCH --output=/cluster/project/cropsci/jmercoli/4dgs_project/logs/4dgs_render_close10_%j.out
+#SBATCH --error=/cluster/project/cropsci/jmercoli/4dgs_project/logs/4dgs_render_close10_%j.err
+#SBATCH --time=01:00:00
+#SBATCH --gpus=1
+#SBATCH --cpus-per-task=4
+#SBATCH --mem-per-cpu=8G
+
+set -euo pipefail
+
+REPO=/cluster/project/cropsci/jmercoli/4dgs_project/repos/4d-gaussian-splatting
+
+module purge
+module load stack/2024-06
+module load gcc/12.2.0
+module load cuda/12.1.1
+module load eth_proxy
+
+source "$HOME/miniconda3/etc/profile.d/conda.sh"
+conda activate wheat3dgs
+
+export CUDA_HOME=$(dirname $(dirname $(which nvcc)))
+export PATH=$CUDA_HOME/bin:$PATH
+
+TORCH_LIB_DIR=$(python - <<'PY'
+import torch, os
+print(os.path.join(os.path.dirname(torch.__file__), "lib"))
+PY
+)
+export LD_LIBRARY_PATH=$TORCH_LIB_DIR:$CUDA_HOME/lib64:$LD_LIBRARY_PATH
+
+export TORCH_CUDA_ARCH_LIST="7.5"
+export MAX_JOBS=1
+
+cd "$REPO"
+
+python render_temporal_video.py

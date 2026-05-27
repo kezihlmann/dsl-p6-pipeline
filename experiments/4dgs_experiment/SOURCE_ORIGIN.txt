@@ -1,0 +1,29 @@
+Source snapshot copied from:
+  /cluster/project/cropsci/jmercoli/4dgs_project/repos/4d-gaussian-splatting
+
+Upstream remote:
+  https://github.com/fudan-zvg/4d-gaussian-splatting.git
+
+Upstream checkout commit at snapshot time:
+  63725f21d4adc29669e565ae10e6b3ad6e0d1250
+
+Local tracked-file modifications present in the working tree at snapshot time:
+  scene/__init__.py
+  scene/dataset_readers.py
+  train.py
+  utils/camera_utils.py
+
+Local untracked experiment additions included in the snapshot:
+  configs/plant/
+  make_masked_4d_data.py
+  patch_test5_loader.py
+  render_all_timesteps_fgweighted.py
+  render_all_timesteps_fgweighted_final7000.py
+  render_temporal_video.py
+  render_temporal_video_sam3mask.py
+  render_test5.py
+  train_fgweighted.py
+
+Excluded from the snapshot:
+  .git history, Python caches, backup files, compiled extension binaries, data, logs,
+  model outputs, checkpoints, rendered videos, and TensorBoard event files.

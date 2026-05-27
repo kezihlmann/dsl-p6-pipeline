@@ -1,0 +1,15 @@
+data/
+outputs/
+logs/
+torch_extensions/
+*.pth
+*.pt
+*.ckpt
+*.ply
+*.mp4
+*.mov
+*.avi
+*.tfevents.*
+__pycache__/
+*.pyc
+*.so
