@@ -796,6 +796,11 @@ def resolve_stem_axis_for_scene(
     if best_signs != (1.0, 1.0, 1.0):
         print(f"Using transformed stem axis with sign flips {best_signs} to match the plant coordinate system.")
 
+    best_direction = normalize(best_axis[1] - best_axis[0])
+    if float(np.dot(best_direction, estimated_direction)) < 0.0:
+        best_axis = (best_axis[1], best_axis[0])
+        print("Swapped stem axis endpoints so the camera up direction follows plant growth.")
+
     return best_axis
 
 
@@ -1324,8 +1329,6 @@ def build_video(
     total_rotation = degrees_per_transition * max(len(clouds) - 1, 1)
     scene_center = (lower + upper) / 2.0
     scene_radius = np.max(upper - lower) / 2.0
-    # Keep the default framing at the default FOV, but let custom FOV values
-    # act as a true zoom control instead of compensating them away.
     distance = scene_radius / math.tan(math.radians(DEFAULT_VERTICAL_FOV) / 2.0)
     distance *= 1.15
     estimated_direction = estimate_scene_stem_direction(clouds)
