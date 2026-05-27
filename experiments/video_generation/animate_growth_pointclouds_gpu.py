@@ -608,11 +608,6 @@ def resolve_stem_axis_for_scene(
     if best_signs != (1.0, 1.0, 1.0):
         print(f"Using transformed stem axis with sign flips {best_signs} to match the plant coordinate system.")
 
-    best_direction = normalize(best_axis[1] - best_axis[0])
-    if float(np.dot(best_direction, estimated_direction)) < 0.0:
-        best_axis = (best_axis[1], best_axis[0])
-        print("Swapped stem axis endpoints so the camera up direction follows plant growth.")
-
     return best_axis
 
 
