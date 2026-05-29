@@ -7,6 +7,7 @@ The initializer combined the original COLMAP point cloud with the Nerfacto-deriv
 ## Contents
 
 - `source/nerfacto_depth_to_ply.py`: exports a Nerfacto point cloud from model depth/rgb/accumulation outputs.
+- `source/align_nerfacto_to_colmap.py`: aligns the raw Nerfstudio-space PLY to COLMAP metric space (uniform scale + translation).
 - `source/make_hybrid_colmap_nerfacto_init.py`: combines COLMAP and Nerfacto points and writes the hybrid initializer.
 - `source/train_t1902_hybrid_nodedup_default.sbatch`: SLURM recipe used to run the successful 3DGS training job.
 - `source/eval_t1902_3dgs_output.py`: evaluation helper used for timestep 1902 3DGS outputs.
@@ -20,6 +21,44 @@ The initializer combined the original COLMAP point cloud with the Nerfacto-deriv
 
 - 3DGS test cameras: `{2, 6, 10, 14, 18, 21}`.
 - Nerfacto uses its default code-defined test split.
+
+## Nerfacto-to-COLMAP alignment
+
+The raw Nerfstudio point cloud (output of `nerfacto_depth_to_ply.py` or `ns-export pointcloud`) lives in Nerfstudio's normalized world space.  It must be transformed to COLMAP metric space before being merged with the COLMAP cloud:
+
+```
+x_colmap = x_nerfstudio / total_scale + translation
+```
+
+For timestep 1902 the alignment parameters are:
+
+| Parameter | Value |
+|-----------|-------|
+| `total_scale` | **4.51588** |
+| `translation` | **[+0.507, −0.518, −0.550]** |
+
+The scale breaks down as `dataparser_scale × extra_factor = 2.4600 × 1.8357 = 4.516`, where `dataparser_scale` comes from `dataparser_transforms.json` of the trained Nerfacto model and the extra factor accounts for additional internal Nerfstudio normalization.  The translation was determined empirically so that the scaled Nerfstudio cloud overlaps with the COLMAP scene.
+
+To reproduce `run_metadata/inputs/nerfacto_3163_axis_aligned_to_colmap_t1902_wheatfmt.ply` from the raw export:
+
+```bash
+python experiments/nerfacto_initialized_3dgs_t1902_hybrid/source/align_nerfacto_to_colmap.py \
+  --nerfacto-ply  <raw_nerfacto_export.ply> \
+  --out           /tmp/nerfacto_aligned.ply \
+  --scale         4.51588 \
+  --translation   0.507 -0.518 -0.550
+```
+
+For a different timestep, supply `--dataparser-transforms` to read the scale automatically and `--colmap-ply` to centroid-match the translation (may need manual refinement):
+
+```bash
+python experiments/nerfacto_initialized_3dgs_t1902_hybrid/source/align_nerfacto_to_colmap.py \
+  --nerfacto-ply           <raw_export.ply> \
+  --out                    <aligned_output.ply> \
+  --dataparser-transforms  <nerfacto_run_dir>/dataparser_transforms.json \
+  --extra-scale            1.836 \
+  --colmap-ply             <timestep_dir>/sparse/0/points3D.ply
+```
 
 ## Reproduce the initializer
 
