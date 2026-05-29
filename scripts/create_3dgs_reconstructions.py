@@ -120,6 +120,17 @@ def patch_dataset_readers(repo_dir: Path) -> bool:
         "        image_name = os.path.basename(image_path).split(\".\")[0]\n"
         "        image = Image.open(image_path)\n"
         "\n"
+        "        if bboxes_folder is not None:\n"
+        "            bbox_path = os.path.join(bboxes_folder, image_name + \".pt\")\n"
+        "        else:\n"
+        "            bbox_path = None\n"
+        "\n"
+        "        if masks_folder is not None:\n"
+        "            mask_paths_pattern = os.path.join(masks_folder, f\"{image_name}_*.png\")\n"
+        "            mask_paths = sorted(glob.glob(mask_paths_pattern))\n"
+        "        else:\n"
+        "            mask_paths = None\n"
+        "\n"
         "        alpha_mask_path = os.path.join(\n"
         "            os.path.dirname(images_folder),\n"
         "            \"masks_binary_active\",\n"
@@ -406,11 +417,30 @@ def build_model_dir(frame_root: Path, settings: Settings) -> Path:
 
 def build_environment(repo_dir: Path) -> dict[str, str]:
     env = os.environ.copy()
-    python_path_entries = [str(repo_dir)]
+    python_path_entries = [
+        str(repo_dir),
+        str(repo_dir / "submodules" / "simple-knn"),
+        str(repo_dir / "submodules" / "diff-gaussian-rasterization"),
+        str(repo_dir / "submodules" / "flashsplat-rasterization"),
+    ]
     existing_pythonpath = env.get("PYTHONPATH")
     if existing_pythonpath:
         python_path_entries.append(existing_pythonpath)
     env["PYTHONPATH"] = os.pathsep.join(python_path_entries)
+
+    try:
+        import torch
+    except Exception:
+        torch = None
+
+    if torch is not None:
+        torch_lib = Path(torch.__file__).resolve().parent / "lib"
+        ld_library_path_entries = [str(torch_lib)]
+        existing_ld_library_path = env.get("LD_LIBRARY_PATH")
+        if existing_ld_library_path:
+            ld_library_path_entries.append(existing_ld_library_path)
+        env["LD_LIBRARY_PATH"] = os.pathsep.join(ld_library_path_entries)
+
     env["WANDB_MODE"] = "disabled"
     env["WANDB_DISABLED"] = "true"
     return env
