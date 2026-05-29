@@ -420,6 +420,8 @@ def build_environment(repo_dir: Path) -> dict[str, str]:
     python_path_entries = [
         str(repo_dir),
         str(repo_dir / "submodules" / "simple-knn"),
+        str(repo_dir / "submodules" / "diff-gaussian-rasterization"),
+        str(repo_dir / "submodules" / "flashsplat-rasterization"),
     ]
     existing_pythonpath = env.get("PYTHONPATH")
     if existing_pythonpath:
