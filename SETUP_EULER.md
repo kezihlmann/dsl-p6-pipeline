@@ -22,11 +22,16 @@ srun --gpus=1 --cpus-per-task=4 --mem-per-cpu=8G --time=08:00:00 --pty bash
 
 ```bash
 module purge
-module load stack/2024-05 gcc/12.2.0 cuda/12.2.1 eth_proxy
+module load stack/2024-06 gcc/12.2.0 cuda/12.1.1 eth_proxy
 eval "$(conda shell.bash hook)"
 ```
 
-Use a GCC 12.x module for the native CUDA builds in step 5. GCC 13 causes `nvcc` failures on Euler for both `tiny-cuda-nn` and the Wheat-3DGS extensions.
+Important:
+
+- Use exactly `stack/2024-06 gcc/12.2.0 cuda/12.1.1 eth_proxy` unless you have verified a newer working combination on Euler.
+- Do not use the older `stack/2024-05 ... cuda/12.2.1` recipe. On Euler it no longer resolves cleanly with GCC 12, so coworkers will fail before environment creation starts.
+- `eth_proxy` is required so Conda and pip can reach `repo.anaconda.com`, `conda.anaconda.org`, and GitHub from the cluster. If you forget it, `conda env create` will fail with `HTTP 000 CONNECTION FAILED`.
+- Use a GCC 12.x module for the native CUDA builds in step 5. GCC 13 causes `nvcc` failures on Euler for both `tiny-cuda-nn` and the Wheat-3DGS extensions.
 
 ## 4. Create the two conda environments
 
@@ -35,6 +40,14 @@ cd /cluster/project/cropsci/kzihlmann/dsl-p6-pipeline
 conda env create -f environment-euler.yml
 conda env create -f environment-euler-nerfacto.yml
 ```
+
+If Conda reports connection failures here, first confirm that `eth_proxy` is loaded:
+
+```bash
+env | grep -i proxy
+```
+
+You should see `http_proxy` and `https_proxy` entries before retrying `conda env create`.
 
 ## 5. Finish the one-time native installs
 

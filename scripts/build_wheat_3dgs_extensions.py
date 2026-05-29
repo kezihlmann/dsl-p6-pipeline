@@ -94,8 +94,15 @@ def build_extension(path: Path, env: dict[str, str], clean: bool) -> None:
 
 
 def verify_simple_knn(repo_dir: Path, env: dict[str, str]) -> None:
+    simple_knn_dir = repo_dir / "submodules" / "simple-knn"
+    python_path_entries = [str(simple_knn_dir)]
+    existing_pythonpath = env.get("PYTHONPATH")
+    if existing_pythonpath:
+        python_path_entries.append(existing_pythonpath)
+    verify_env = env.copy()
+    verify_env["PYTHONPATH"] = os.pathsep.join(python_path_entries)
     inline_code = "from simple_knn._C import distCUDA2; print('simple-knn ok')"
-    run_command([sys.executable, "-c", inline_code], cwd=repo_dir, env=env)
+    run_command([sys.executable, "-c", inline_code], cwd=simple_knn_dir, env=verify_env)
 
 
 def main() -> int:
