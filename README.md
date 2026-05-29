@@ -72,6 +72,38 @@ Use the short Euler guide in [SETUP_EULER.md](SETUP_EULER.md).
 - `scripts/build_wheat_3dgs_extensions.py`: builds the Wheat-3DGS CUDA extensions
 - `scripts/install_tinycudann_euler.py`: installs `tiny-cuda-nn` for the Nerfacto `tcnn` backend on Euler
 
+## 3DGS Loss Modes
+
+The 3DGS training supports several loss modes.  The **main pipeline** uses `train_vanilla_3dgs.py`; the **ablation experiments** use `train_mask_loss_3dgs.py` with an explicit `--loss_mode` flag.
+
+### Main pipeline (`train_vanilla_3dgs.py`)
+
+The GT image is pre-multiplied by the binary plant mask before any loss is computed.  The standard 3DGS objective (L1 + D-SSIM) then runs over **all pixels**:
+
+```
+L = (1 − λ_dssim) · L1(Î, M⊙I)  +  λ_dssim · (1 − SSIM(Î, M⊙I))
+```
+
+Background pixels have GT = 0, so the renderer is trained to produce black outside the mask.  This is the **hard-masked RGB** strategy described in the report (§ Foreground Masking, strategy 1).
+
+### Ablation loss modes (`train_mask_loss_3dgs.py`)
+
+| `--loss_mode` | Formula | Report correspondence |
+|---|---|---|
+| `baseline` | `L1(Î, I) + DSSIM(Î, I)` — full image, no masking | Unmasked baseline |
+| `masked_rgb` | `masked_mean(\|Î−I\|, M)` — foreground pixels only, **no SSIM** | Closest to report's $\mathcal{L}_\text{rgb}^M$ (report also includes masked D-SSIM; code drops it) |
+| `alpha` | full-image L1+DSSIM + `λ · BCE(Â, M)` | Unmasked photometric + opacity supervision |
+| `rgb_alpha` | `masked_L1` + `λ · BCE(Â, M)` | Report's opacity/alpha mask loss objective: $\mathcal{L}_\text{rgb}^M + \lambda_\text{alpha}\mathcal{L}_\text{alpha}$ (same caveat: no SSIM in the masked RGB term) |
+| `foreground_background` | `masked_L1` + `λ · BCE(Â, M)` + `λ_bg · mean(Â[background])` | Not in report — adds an explicit background opacity penalty |
+
+`Â` is the accumulated opacity map output by the rasterizer.  `BCE(Â, M)` is binary cross-entropy between the rendered opacity and the plant mask, implemented in `alpha_loss()`.
+
+### Accuracy notes (report vs. code)
+
+1. **RGB-derived silhouette loss ($\mathcal{L}_\text{sil}$) is not used for training.**  The report describes it as a training loss, but no `loss_mode` implements it.  It appears only in evaluation (`compute_plant_metrics.py`: `pred_gray > 0.01`).
+2. **Masked D-SSIM is missing from `masked_rgb` / `rgb_alpha`.**  The report defines $\mathcal{L}_\text{rgb}^M$ with both masked L1 and masked D-SSIM; the code only computes masked L1.
+3. **Main pipeline loss ≠ $\mathcal{L}_\text{rgb}^M$.**  `train_vanilla_3dgs.py` zeros the GT outside the mask and runs the loss over all pixels, while the report's formula averages only over foreground pixels.
+
 ## Notes
 
 - `3dgs` depends on `external/Wheat-3DGS`.
