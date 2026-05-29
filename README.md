@@ -75,5 +75,6 @@ Use the short Euler guide in [SETUP_EULER.md](SETUP_EULER.md).
 ## Notes
 
 - `3dgs` depends on `external/Wheat-3DGS`.
-- `nerfacto` uses the repository's built-in training and rendering workflow
+- `nerfacto` uses the repository's built-in training and rendering workflow.
+- For evaluation, 3DGS uses held-out test cameras `{2, 6, 10, 14, 18, 21}`; 4DGS uses held-out test cameras `{16, 17, 18, 19, 20, 21}`. Nerfacto uses its default code-defined test split.
 - Large local experiment outputs under `data/` are ignored by Git.
