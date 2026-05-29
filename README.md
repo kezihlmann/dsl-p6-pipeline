@@ -72,30 +72,21 @@ Use the short Euler guide in [SETUP_EULER.md](SETUP_EULER.md).
 - `scripts/build_wheat_3dgs_extensions.py`: builds the Wheat-3DGS CUDA extensions
 - `scripts/install_tinycudann_euler.py`: installs `tiny-cuda-nn` for the Nerfacto `tcnn` backend on Euler
 
-## 3DGS Loss Modes — Report to Code Mapping
+## 3DGS Loss Modes
 
-Direct correspondence between the loss objectives named in the report (§ Loss Functions) and the `--loss_mode` values in `experiments/3dgs_loss_experiments/scripts/train_mask_loss_3dgs.py`.
+`experiments/3dgs_loss_experiments/scripts/train_mask_loss_3dgs.py`, `--loss_mode` argument.
+The main pipeline (`scripts/create_3dgs_reconstructions.py`) uses `train_vanilla_3dgs.py` with hard-masked GT — see last row.
 
-| Report objective | `--loss_mode` | Code file |
+| `loss_mode` | What it does in code | Report name / description |
 |---|---|---|
-| Hard-masked RGB (strategy 1, §Foreground Masking) | main pipeline — `train_vanilla_3dgs.py` | `scripts/create_3dgs_reconstructions.py` |
-| `L = L_rgb^M` (foreground-masked photometric only) | `masked_rgb` | `train_mask_loss_3dgs.py` |
-| `L = L_rgb^M + λ_sil · L_sil` (RGB-derived silhouette) | **not implemented** | — |
-| `L = L_rgb^M + λ_alpha · L_alpha` (opacity mask loss) | `rgb_alpha` | `train_mask_loss_3dgs.py` |
+| `baseline` | Full-image RGB L1 + D-SSIM, no mask | Unmasked 3DGS baseline |
+| `masked_rgb` | Masked L1 on foreground pixels only | Foreground-masked photometric loss |
+| `alpha` | Full-image RGB L1 + D-SSIM + alpha BCE mask loss | Full-image photometric loss + opacity/alpha mask loss |
+| `rgb_alpha` | Masked foreground RGB L1 + alpha BCE mask loss | Foreground-masked photometric loss + opacity/alpha mask loss |
+| `foreground_background` | Masked foreground RGB L1 + alpha BCE mask loss + background opacity penalty | Foreground-masked photometric loss + opacity/alpha mask loss + background penalty |
+| main pipeline | GT pre-multiplied by mask; full-image RGB L1 + D-SSIM (background GT = 0) | Hard-masked RGB training (§ Foreground Masking, strategy 1) |
 
-The two modes present in the code but not named as objectives in the report:
-
-| `--loss_mode` | What it computes |
-|---|---|
-| `baseline` | Standard unmasked 3DGS loss: `(1−λ_dssim)·L1(Î,I) + λ_dssim·(1−SSIM(Î,I))` |
-| `alpha` | Unmasked RGB loss + `λ_alpha·L_alpha` (no foreground masking on the RGB term) |
-| `foreground_background` | `L_1^M + λ_alpha·L_alpha + λ_bg·mean(Â[M=0])` |
-
-### Discrepancies to fix in the report
-
-1. **`L_sil` training objective is not implemented.** The report lists `L = L_rgb^M + λ_sil·L_sil` as a tested loss, but no `loss_mode` computes it. `L_sil` is only used at evaluation time. Fix: remove this objective from the report, or implement it.
-2. **`masked_rgb` and `rgb_alpha` compute `L_1^M`, not `L_rgb^M`.** The code does `masked_mean(|Î−I|, M)` — masked L1 only. The report's `L_rgb^M` additionally includes `λ_dssim·(1−SSIM(M⊙Î, M⊙I))`. Fix: either drop the masked D-SSIM term from the report formula (rename to `L_1^M`), or add it to the code.
-3. **Main pipeline (`train_vanilla_3dgs.py`) ≠ `L_rgb^M`.** The GT image is pre-multiplied by `M` and the loss runs over all pixels with background GT = 0. The report's `L_rgb^M` averages only over foreground pixels. These are different losses and should not be described interchangeably in the report.
+> **Note:** the RGB-derived silhouette loss (`L_sil`) described in the report is **not implemented as a training loss** — it is only used at evaluation time.
 
 ## Notes
 
