@@ -16,6 +16,11 @@ The initializer combined the original COLMAP point cloud with the Nerfacto-deriv
 - `run_metadata/cameras.json`: camera metadata from the run output.
 - `run_metadata/metrics.summary.json`: plant/full-image metric summary for the run.
 
+## Evaluation camera split
+
+- 3DGS test cameras: `{2, 6, 10, 14, 18, 21}`.
+- Nerfacto uses its default code-defined test split.
+
 ## Reproduce the initializer
 
 Run from the repository root in an environment with `numpy` and `plyfile`:

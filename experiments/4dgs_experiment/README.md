@@ -142,3 +142,5 @@ sbatch \
 ## Notes
 
 The copied historical scripts in `scripts/run_4dgs_*.sh` still contain the absolute paths from the original working area. They are preserved as provenance. For new runs, prefer `scripts/submit_4dgs_euler.sh`, which materializes configs using local paths.
+
+- 4DGS test cameras: `{16, 17, 18, 19, 20, 21}`.
