@@ -72,53 +72,30 @@ Use the short Euler guide in [SETUP_EULER.md](SETUP_EULER.md).
 - `scripts/build_wheat_3dgs_extensions.py`: builds the Wheat-3DGS CUDA extensions
 - `scripts/install_tinycudann_euler.py`: installs `tiny-cuda-nn` for the Nerfacto `tcnn` backend on Euler
 
-## 3DGS Loss Modes
+## 3DGS Loss Modes — Report to Code Mapping
 
-Notation is identical to the report.
-`M` = binary plant mask, `I` = GT image, `Î` = rendered image, `Â` = accumulated opacity, `Ω` = image domain.
+Direct correspondence between the loss objectives named in the report (§ Loss Functions) and the `--loss_mode` values in `experiments/3dgs_loss_experiments/scripts/train_mask_loss_3dgs.py`.
 
-The report defines these building blocks:
-
-```
-L_1^M  =  ( Σ_p M_p |Î_p − I_p| ) / ( Σ_p M_p + ε )
-
-L_rgb^M  =  (1 − λ_dssim) · L_1^M  +  λ_dssim · (1 − SSIM(M⊙Î, M⊙I))
-
-L_alpha  =  −(1/|Ω|) Σ_p [ M_p·log(Â_p+ε) + (1−M_p)·log(1−Â_p+ε) ]
-
-L_sil  =  (1/|Ω|) Σ_p | M̂_p^rgb − M_p |
-          where  M̂_p^rgb = Σ_c |Î_{p,c}| / ( max_q Σ_c |Î_{q,c}| + ε )
-```
-
-### What each loss mode actually computes
-
-The **ablation experiments** use `experiments/3dgs_loss_experiments/scripts/train_mask_loss_3dgs.py`
-with `--loss_mode`.
-
-| `--loss_mode` | What the code computes | Report objective it is meant to implement |
+| Report objective | `--loss_mode` | Code file |
 |---|---|---|
-| `baseline` | `(1−λ_dssim)·L1(Î,I) + λ_dssim·(1−SSIM(Î,I))` over all pixels | Unmasked 3DGS baseline — no corresponding named loss in report |
-| `masked_rgb` | **`L_1^M` only** | `L_rgb^M` — ⚠ masked D-SSIM term is absent |
-| `alpha` | `(1−λ)·L1(Î,I) + λ·(1−SSIM(Î,I))  +  λ_alpha·L_alpha` (unmasked RGB) | Not described as a standalone objective in the report |
-| `rgb_alpha` | **`L_1^M  +  λ_alpha·L_alpha`** | `L_rgb^M + λ_alpha·L_alpha` — ⚠ masked D-SSIM term is absent |
-| `foreground_background` | `L_1^M + λ_alpha·L_alpha + λ_bg·mean(Â[M=0])` | Not in the report |
+| Hard-masked RGB (strategy 1, §Foreground Masking) | main pipeline — `train_vanilla_3dgs.py` | `scripts/create_3dgs_reconstructions.py` |
+| `L = L_rgb^M` (foreground-masked photometric only) | `masked_rgb` | `train_mask_loss_3dgs.py` |
+| `L = L_rgb^M + λ_sil · L_sil` (RGB-derived silhouette) | **not implemented** | — |
+| `L = L_rgb^M + λ_alpha · L_alpha` (opacity mask loss) | `rgb_alpha` | `train_mask_loss_3dgs.py` |
 
-### Main pipeline (`train_vanilla_3dgs.py`)
+The two modes present in the code but not named as objectives in the report:
 
-The GT image is **pre-multiplied** by `M` before any loss (`original_image *= gt_alpha_mask`), then the standard 3DGS loss runs over all pixels:
+| `--loss_mode` | What it computes |
+|---|---|
+| `baseline` | Standard unmasked 3DGS loss: `(1−λ_dssim)·L1(Î,I) + λ_dssim·(1−SSIM(Î,I))` |
+| `alpha` | Unmasked RGB loss + `λ_alpha·L_alpha` (no foreground masking on the RGB term) |
+| `foreground_background` | `L_1^M + λ_alpha·L_alpha + λ_bg·mean(Â[M=0])` |
 
-```
-L  =  (1−λ_dssim)·L1(Î, M⊙I)  +  λ_dssim·(1−SSIM(Î, M⊙I))   [all pixels, background GT = 0]
-```
+### Discrepancies to fix in the report
 
-This is **not the same as `L_rgb^M`**: the sum runs over every pixel (background GT is 0, not excluded), whereas `L_rgb^M` averages only over foreground pixels `M_p = 1`.
-This corresponds to the **hard-masked RGB** strategy in the report (§ Foreground Masking, strategy 1).
-
-### Discrepancies between code and report — items to fix in the report
-
-1. **`L_sil` is never used for training.** The report defines it and lists `L = L_rgb^M + λ_sil·L_sil` as a tested objective, but no `loss_mode` computes it. `L_sil` only appears at evaluation time (`pred_gray > 0.01` in `compute_plant_metrics.py`). → Either remove the silhouette-loss training objective from the report, or implement it.
-2. **`masked_rgb` and `rgb_alpha` compute `L_1^M`, not `L_rgb^M`.** The masked D-SSIM term `λ_dssim·(1−SSIM(M⊙Î, M⊙I))` is missing from both modes. → Either simplify the report formula to `L_1^M`, or add the SSIM term to the code.
-3. **Main pipeline loss ≠ `L_rgb^M`.** The report should clarify that the hard-masked strategy averages over all pixels (background forced to 0), not just foreground pixels as `L_rgb^M` does.
+1. **`L_sil` training objective is not implemented.** The report lists `L = L_rgb^M + λ_sil·L_sil` as a tested loss, but no `loss_mode` computes it. `L_sil` is only used at evaluation time. Fix: remove this objective from the report, or implement it.
+2. **`masked_rgb` and `rgb_alpha` compute `L_1^M`, not `L_rgb^M`.** The code does `masked_mean(|Î−I|, M)` — masked L1 only. The report's `L_rgb^M` additionally includes `λ_dssim·(1−SSIM(M⊙Î, M⊙I))`. Fix: either drop the masked D-SSIM term from the report formula (rename to `L_1^M`), or add it to the code.
+3. **Main pipeline (`train_vanilla_3dgs.py`) ≠ `L_rgb^M`.** The GT image is pre-multiplied by `M` and the loss runs over all pixels with background GT = 0. The report's `L_rgb^M` averages only over foreground pixels. These are different losses and should not be described interchangeably in the report.
 
 ## Notes
 
