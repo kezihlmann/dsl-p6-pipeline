@@ -1,43 +1,80 @@
 # Nerfacto-Initialized 3DGS Hybrid, Timestep 1902
 
-This is the hybrid 3DGS initialization experiment for timestep 1902.
+This folder contains the hybrid 3DGS initialization experiment for timestep `1902`.
 
-The initializer combined the original COLMAP point cloud with the Nerfacto-derived point cloud, removed duplicates by rounded coordinates, and used the resulting 6,326-point `input.ply` to initialize Wheat-3DGS.
+The initializer combines the original 3,163-point COLMAP point cloud with a 3,163-point COLMAP-aligned Nerfacto-derived point cloud, without duplicate removal, and uses the resulting 6,326-point `input.ply` to initialize Wheat-3DGS.
 
 ## Contents
 
-- `source/nerfacto_depth_to_ply.py`: exports a Nerfacto point cloud from model depth/rgb/accumulation outputs.
-- `source/align_nerfacto_to_colmap.py`: aligns the raw Nerfstudio-space PLY to COLMAP metric space (uniform scale + translation).
-- `source/make_hybrid_colmap_nerfacto_init.py`: combines COLMAP and Nerfacto points and writes the hybrid initializer.
-- `source/train_t1902_hybrid_nodedup_default.sbatch`: SLURM recipe used to run the successful 3DGS training job.
-- `source/eval_t1902_3dgs_output.py`: evaluation helper used for timestep 1902 3DGS outputs.
-- `run_metadata/inputs/`: the two 3,163-point input clouds used to regenerate the hybrid initializer.
-- `run_metadata/input.ply`: the archived 6,326-point hybrid initialization cloud.
-- `run_metadata/cfg_args`: captured Wheat-3DGS run arguments.
-- `run_metadata/cameras.json`: camera metadata from the run output.
-- `run_metadata/metrics.summary.json`: plant/full-image metric summary for the run.
+* `source/nerfacto_depth_to_ply.py`: exports a raw Nerfacto point cloud from model depth/RGB/accumulation outputs.
+* `source/align_nerfacto_to_colmap.py`: aligns the raw Nerfstudio-space PLY to COLMAP metric space using uniform scale and translation.
+* `source/make_hybrid_colmap_nerfacto_init.py`: combines COLMAP and COLMAP-aligned Nerfacto points and writes the hybrid initializer.
+* `source/train_t1902_hybrid_nodedup_default.sbatch`: SLURM recipe used to run the successful 3DGS training job.
+* `source/eval_t1902_3dgs_output.py`: evaluation helper used for timestep 1902 3DGS outputs.
+* `run_metadata/inputs/`: the two 3,163-point input clouds used to regenerate the hybrid initializer.
+* `run_metadata/input.ply`: the archived 6,326-point hybrid initialization cloud.
+* `run_metadata/cfg_args`: captured Wheat-3DGS run arguments.
+* `run_metadata/cameras.json`: camera metadata from the run output.
+* `run_metadata/metrics.summary.json`: plant/full-image metric summary for the run.
 
 ## Evaluation camera split
 
-- 3DGS test cameras: `{2, 6, 10, 14, 18, 21}`.
-- Nerfacto uses its default code-defined test split.
+3DGS test cameras: `{2, 6, 10, 14, 18, 21}`.
+
+Nerfacto uses its default code-defined test split.
+
+## Raw Nerfacto point-cloud export
+
+The COLMAP-aligned Nerfacto PLY is not produced directly by `nerfacto_depth_to_ply.py`. The export script is used first to generate a raw Nerfacto point cloud in Nerfstudio's normalized world space. This raw PLY must then be aligned to COLMAP metric space using `align_nerfacto_to_colmap.py`.
+
+The overall pipeline is:
+
+```bash
+# 1. Export raw Nerfacto/Nerfstudio-space point cloud.
+# Check the script-specific arguments with:
+python experiments/nerfacto_initialized_3dgs_t1902_hybrid/source/nerfacto_depth_to_ply.py --help
+
+# Example structure:
+python experiments/nerfacto_initialized_3dgs_t1902_hybrid/source/nerfacto_depth_to_ply.py \
+  <nerfacto_depth_to_ply_args>
+
+# 2. Align raw Nerfacto PLY to COLMAP metric space.
+python experiments/nerfacto_initialized_3dgs_t1902_hybrid/source/align_nerfacto_to_colmap.py \
+  --nerfacto-ply  <raw_nerfacto_export.ply> \
+  --out           /tmp/nerfacto_aligned.ply \
+  --scale         4.51588 \
+  --translation   0.507 -0.518 -0.550
+```
+
+For timestep `1902`, the verified alignment values are:
+
+```text
+scale = 4.51588
+translation = 0.507 -0.518 -0.550
+```
 
 ## Nerfacto-to-COLMAP alignment
 
-The raw Nerfstudio point cloud (output of `nerfacto_depth_to_ply.py` or `ns-export pointcloud`) lives in Nerfstudio's normalized world space.  It must be transformed to COLMAP metric space before being merged with the COLMAP cloud:
+The raw Nerfstudio point cloud, produced by `nerfacto_depth_to_ply.py` or `ns-export pointcloud`, lives in Nerfstudio's normalized world space. It must be transformed to COLMAP metric space before being merged with the COLMAP cloud:
 
-```
+```text
 x_colmap = x_nerfstudio / total_scale + translation
 ```
 
-For timestep 1902 the alignment parameters are:
+For timestep `1902`, the alignment parameters are:
 
-| Parameter | Value |
-|-----------|-------|
-| `total_scale` | **4.51588** |
-| `translation` | **[+0.507, −0.518, −0.550]** |
+| Parameter     | Value                      |
+| ------------- | -------------------------- |
+| `total_scale` | `4.51588`                  |
+| `translation` | `[+0.507, -0.518, -0.550]` |
 
-The scale breaks down as `dataparser_scale × extra_factor = 2.4600 × 1.8357 = 4.516`, where `dataparser_scale` comes from `dataparser_transforms.json` of the trained Nerfacto model and the extra factor accounts for additional internal Nerfstudio normalization.  The translation was determined empirically so that the scaled Nerfstudio cloud overlaps with the COLMAP scene.
+The scale breaks down as:
+
+```text
+dataparser_scale × extra_factor = 2.4600 × 1.8357 = 4.516
+```
+
+where `dataparser_scale` comes from `dataparser_transforms.json` of the trained Nerfacto model and the extra factor accounts for additional internal Nerfstudio normalization. The translation was determined empirically so that the scaled Nerfstudio cloud overlaps with the COLMAP scene.
 
 To reproduce `run_metadata/inputs/nerfacto_3163_axis_aligned_to_colmap_t1902_wheatfmt.ply` from the raw export:
 
@@ -49,7 +86,7 @@ python experiments/nerfacto_initialized_3dgs_t1902_hybrid/source/align_nerfacto_
   --translation   0.507 -0.518 -0.550
 ```
 
-For a different timestep, supply `--dataparser-transforms` to read the scale automatically and `--colmap-ply` to centroid-match the translation (may need manual refinement):
+For a different timestep, supply `--dataparser-transforms` to read the scale automatically and `--colmap-ply` to centroid-match the translation. This may still require manual refinement, especially if the Nerfacto cloud captures only the plant while COLMAP covers the full scene setup.
 
 ```bash
 python experiments/nerfacto_initialized_3dgs_t1902_hybrid/source/align_nerfacto_to_colmap.py \
@@ -60,7 +97,7 @@ python experiments/nerfacto_initialized_3dgs_t1902_hybrid/source/align_nerfacto_
   --colmap-ply             <timestep_dir>/sparse/0/points3D.ply
 ```
 
-## Reproduce the initializer
+## Reproduce the hybrid initializer
 
 Run from the repository root in an environment with `numpy` and `plyfile`:
 
@@ -95,7 +132,7 @@ The archived initializer checksum is:
 
 ## Reproduce the 3DGS run
 
-The training job expects the timestep 1902 scene folder and a Wheat-3DGS checkout. On Euler, submit it with:
+The training job expects the timestep `1902` scene folder and a Wheat-3DGS checkout. On Euler, submit it with:
 
 ```bash
 EXPERIMENT_DIR=$PWD/experiments/nerfacto_initialized_3dgs_t1902_hybrid \
@@ -105,7 +142,7 @@ OUT=/path/to/outputs/t1902_hyb_nd_colmap_nerfacto_nodedup_default \
 sbatch experiments/nerfacto_initialized_3dgs_t1902_hybrid/source/train_t1902_hybrid_nodedup_default.sbatch
 ```
 
-By default the job uses `run_metadata/input.ply`, trains for 15,000 iterations, renders iteration 15,000, checks that the initializer has exactly 6,326 points, and restores the scene's original `sparse/0/points3D.ply` on exit.
+By default, the job uses `run_metadata/input.ply`, trains for 15,000 iterations, renders iteration 15,000, checks that the initializer has exactly 6,326 points, and restores the scene's original `sparse/0/points3D.ply` on exit.
 
 To use a freshly regenerated initializer, set:
 
@@ -124,10 +161,9 @@ b0f70a14f0a89f6faf8a78db5b0b782849d19d5bf2f5b3782c63c050a2772d1f  run_metadata/m
 
 ## Notes
 
-- Initial hybrid cloud: 6,326 vertices.
-- Final iteration 15000 point cloud in the local output: 52,747 vertices.
-- Mean full PSNR from the archived summary: 34.72.
-- Mean plant PSNR from the archived summary: 17.87.
-- Mean silhouette IoU from the archived summary: 0.824.
-
-- For the test cameras: Nerfacto uses its default code-defined test split.
+* Initial hybrid cloud: 6,326 vertices.
+* Final iteration 15,000 point cloud in the local output: 52,747 vertices.
+* Mean full PSNR from the archived summary: 34.72.
+* Mean plant PSNR from the archived summary: 17.87.
+* Mean silhouette IoU from the archived summary: 0.824.
+* For the test cameras, Nerfacto uses its default code-defined test split.
