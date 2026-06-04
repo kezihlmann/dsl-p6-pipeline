@@ -129,3 +129,5 @@ b0f70a14f0a89f6faf8a78db5b0b782849d19d5bf2f5b3782c63c050a2772d1f  run_metadata/m
 - Mean full PSNR from the archived summary: 34.72.
 - Mean plant PSNR from the archived summary: 17.87.
 - Mean silhouette IoU from the archived summary: 0.824.
+
+- For the test cameras: Nerfacto uses its default code-defined test split.
