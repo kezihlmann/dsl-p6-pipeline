@@ -94,6 +94,8 @@ cd /cluster/project/cropsci/kzihlmann/dsl-p6-pipeline
 conda activate dsl-p6-pipeline
 python scripts/run_pipeline.py --settings settings_pipeline.txt
 ```
+> [!NOTE]
+> For using SAM3 on step 1, accepting the terms of use is required: https://huggingface.co/facebook/sam3
 
 Or submit through Slurm:
 
