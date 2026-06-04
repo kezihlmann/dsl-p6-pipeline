@@ -76,3 +76,5 @@ python experiments/3dgs_loss_experiments/scripts/evaluate_region_metrics.py \
 ```
 
 This writes per-image CSVs plus JSON summaries for full-image, plant-only, bbox, and rendered-silhouette metrics.
+
+Note: For evaluation, 3DGS uses held-out test cameras {2, 6, 10, 14, 18, 21}.
