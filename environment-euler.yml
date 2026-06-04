@@ -17,7 +17,7 @@ dependencies:
   - pytorch::pytorch-cuda=12.1
   - pip
   - pip:
-      - transformers
+      - transformers<=5.8.1
       - huggingface_hub
       - wandb
       - plyfile
