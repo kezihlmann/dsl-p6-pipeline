@@ -55,6 +55,7 @@ Build `tiny-cuda-nn` for the Nerfacto `tcnn` backend:
 
 ```bash
 conda activate dsl-p6-nerfacto
+export TORCH_CUDA_ARCH_LIST="7.0;7.5;8.0;8.6;8.9;9.0+PTX"
 python scripts/install_tinycudann_euler.py
 ```
 
@@ -62,6 +63,7 @@ Build the Wheat-3DGS CUDA extensions:
 
 ```bash
 conda activate dsl-p6-pipeline
+export TORCH_CUDA_ARCH_LIST="7.0;7.5;8.0;8.6;8.9;9.0+PTX"
 python scripts/build_wheat_3dgs_extensions.py
 ```
 
